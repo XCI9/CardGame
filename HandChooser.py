@@ -12,10 +12,11 @@ import socket
 import pickle
 
 class CardTypeBlock(QWidget):
-    def __init__(self, playable = True, hand:Hand = None, parent=None):
+    def __init__(self, playable = True, hand:Hand = None, need_erased_1 = False, parent=None):
         super().__init__(parent)
 
         self.hand = hand
+        self.need_erased_1 = need_erased_1
         self.playable = playable
         self.ui = CardTypeForm()
         self.ui.setupUi(self)
@@ -142,7 +143,7 @@ class HandChooser:
         if self.is_choosing_eliminate:
             return
         
-        if selected_item_data.hand.eraseable:
+        if selected_item_data.hand.eraseable and not selected_item_data.need_erased_1:
             self.ui.eliminate.show()
         else:
             self.ui.eliminate.hide()
@@ -158,7 +159,7 @@ class HandChooser:
             self.ui.submit.hide()
             self.ui.eliminate.setText('選擇')
             cardtypes = []
-
+            
             cardtype = CardTypeBlock()
             cardtype.ui.card.setText(f'不消除')
             cardtype.ui.type.setText('')
@@ -234,15 +235,21 @@ class HandChooser:
         #self.listView.setModel(self.data_model)
         self.ui.eliminate.hide()
 
-    def updatePlayableCard(self, replies: list):
+    def updatePlayableCard(self, replies: list[tuple[Hand, bool, str]]):
         self.cardtypes: list[CardTypeBlock] = []
         for hand, playable, not_playable_reason in replies:
             hand.erased_card = None
-            cardtype = CardTypeBlock(playable, hand)
-            if not playable:
-                cardtype.setStyleSheet('QLabel{color:#999}')
-                cardtype.ui.cannot_play_reason.setText(not_playable_reason)
-                cardtype.ui.cannot_play_reason.show()
+
+            # 1 can also be erased
+            if not playable and not_playable_reason == '首家需要打出1' and hand.eraseable:
+                hand.erased_card = 1
+                cardtype = CardTypeBlock(True, hand, need_erased_1=True)
+            else:
+                cardtype = CardTypeBlock(playable, hand)
+                if not playable:
+                    cardtype.setStyleSheet('QLabel{color:#999}')
+                    cardtype.ui.cannot_play_reason.setText(not_playable_reason)
+                    cardtype.ui.cannot_play_reason.show()
             self.cardtypes.append(cardtype)
 
         self.data_model = CardListModel(self.cardtypes)  # Example data
