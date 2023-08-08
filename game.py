@@ -424,6 +424,7 @@ class TableClassic(Table):
         if len(active_player.cards) == 0:
             active_player.in_game = False
             next_active_player.lastplayed = True
+            self.empty_previous_hand()
         # turn forward to next player
         if played_hand:
             for player in self.players:
