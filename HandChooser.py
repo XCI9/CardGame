@@ -52,7 +52,7 @@ class CardTypeBlock(QWidget):
                 self.ui.value.setText(f'附帶{hand.suit}')
             else:
                 if hand.rank in ['triple', 'double', 'single']:
-                    self.ui.value.setText(f'附帶None')
+                    self.ui.value.setText(f'無附帶')
                 else:
                     self.ui.value.setText(f'{hand.value}')
             self.ui.eliminate.setText('可消除' if hand.eraseable else '')
