@@ -224,7 +224,49 @@ def evaluate_cards(cards: tuple[int] | list[int],
 class Table:
     def __init__(self) -> None:
         pass
-class Player: pass
+
+class Player:
+    """A player in a table.
+
+    Instance variables
+    ----------
+    name : string
+        The name of player.
+    table : Table
+        The table this player joined.
+    cards : list[int]
+        The cards player has.
+    selected_cards : list[int]
+        The cards that plater selected.
+    lastplayed : bool
+        If all other players choose to pass their turn after a player 
+        has played a hand, that player can play any hand on to the tabel
+        and he is not allowed to pass the turn.
+    his_turn : bool
+        True when the game is in player's turn.
+        False when the player is wait for other players.
+    in_game : bool
+        True when player is still in the game. If a player plays all of his cards
+        ,he finishs his game, so it'll becomes Flase.
+    """
+    def __init__(self, name = 'None') -> None:
+        self.name = name
+        self.cards = []
+        self.selected_cards = []
+        self.lastplayed = False
+        self.his_turn = False
+        self.in_game = False
+
+    def __repr__(self) -> str:
+        string = ( 
+            f'name : {self.name}\n'
+            + f'his_turn : {self.his_turn}\n'
+            + f'in_game : {self.in_game}\n'
+            + f'lastplayed : {self.lastplayed}\n'
+            + f'cards :\n{self.cards}\n'
+            + f'selected_cards : {self.selected_cards}'
+        )
+        return string
 
 class TableClassic(Table):
     """A game table for player to play a game with classic game mode.
@@ -295,6 +337,7 @@ class TableClassic(Table):
         self.players[dealer_ind].his_turn = True
         # deal
         deck = list(range(2, 32))
+
         random.shuffle(deck)
         self.players[0].cards += deck[0:10]
         self.players[1].cards += deck[10:20]
@@ -355,8 +398,8 @@ class TableClassic(Table):
         if shift == -1:
             prev_holder = (3 + holder - 1) % 3
             if not self.players[prev_holder].in_game:
-                next_holder = (3 + next_holder - 1) % 3
-            return self.players[next_holder]
+                prev_holder = (3 + prev_holder - 1) % 3
+            return self.players[prev_holder]
 
     def turn_forward(self, played_hand: bool) -> None:
         """Make turn forward. check whether active player wins.
@@ -367,7 +410,7 @@ class TableClassic(Table):
             Input True when player plays a hand.
             Input False when player pass his trun.
         """
-        active_player = self.get_player(+1)
+        active_player = self.get_player()
         next_active_player = self.get_player(+1)
         # check if active player wins
         if len(active_player.cards) == 0:
@@ -421,48 +464,6 @@ class TableClassic(Table):
 
 
 
-class Player:
-    """A player in a table.
-
-    Instance variables
-    ----------
-    name : string
-        The name of player.
-    table : Table
-        The table this player joined.
-    cards : list[int]
-        The cards player has.
-    selected_cards : list[int]
-        The cards that plater selected.
-    lastplayed : bool
-        If all other players choose to pass their turn after a player 
-        has played a hand, that player can play any hand on to the tabel
-        and he is not allowed to pass the turn.
-    his_turn : bool
-        True when the game is in player's turn.
-        False when the player is wait for other players.
-    in_game : bool
-        True when player is still in the game. If a player plays all of his cards
-        ,he finishs his game, so it'll becomes Flase.
-    """
-    def __init__(self, name = 'None') -> None:
-        self.name = name
-        self.cards = []
-        self.selected_cards = []
-        self.lastplayed = False
-        self.his_turn = False
-        self.in_game = False
-
-    def __repr__(self) -> str:
-        string = ( 
-            f'name : {self.name}\n'
-            + f'his_turn : {self.his_turn}\n'
-            + f'in_game : {self.in_game}\n'
-            + f'lastplayed : {self.lastplayed}\n'
-            + f'cards :\n{self.cards}\n'
-            + f'selected_cards : {self.selected_cards}'
-        )
-        return string
 
 
 

@@ -69,10 +69,11 @@ class ServerHandler(socketserver.BaseRequestHandler):
                     self.notifyNextTurnPlayer()
 
                     # update table for all player
-                    prev_hand = self.game_core.previous_hand
-                    package = pickle.dumps(Package.PrevHand(prev_hand))
-                    for client in self.clients:
-                        client.send(package)
+                    if self.game_core.get_player(-1).lastplayed:
+                        prev_hand = self.game_core.previous_hand
+                        package = pickle.dumps(Package.PrevHand(prev_hand))
+                        for client in self.clients:
+                            client.send(package)
                 # case Package.PrevHand():
                 #     hand: Hand = package.hand
                 #     print(hand)
