@@ -163,20 +163,28 @@ class HandChooser:
             cardtype.ui.eliminate.setText('')
             cardtypes.append(cardtype)
 
+            current_selected_index = 0
             for card in slot.slots:
+                card_number = card.getCardNumber()
                 if card is not None and \
-                   card.getCardNumber() not in self.cardtypes[self.selected_index].hand.card:
+                   card_number not in self.cardtypes[self.selected_index].hand.card:
                     cardtype = CardTypeBlock()
-                    cardtype.ui.card.setText(f'{card.getCardNumber()}')
+                    cardtype.ui.card.setText(f'{card_number}')
                     cardtype.ui.type.setText('')
                     cardtype.ui.value.setText('')
                     cardtype.ui.eliminate.setText('')
                     cardtypes.append(cardtype)
 
+                    if card_number == self.cardtypes[self.selected_index].eliminate_card:
+                        current_selected_index = len(cardtypes) - 1
+
             data_model = CardListModel(cardtypes)  # Example data
             self.listView.setModel(data_model)
+            self.listView.setCurrentIndex(data_model.index(current_selected_index, 0))
+
             self.is_choosing_eliminate = True
         else:
+            #get selected option
             selection_model = self.listView.selectionModel()
             #print(selection_model.currentIndex().row())
             eliminateNumber = selection_model.currentIndex().data(Qt.DisplayRole).ui.card.text()
