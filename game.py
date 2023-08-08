@@ -82,7 +82,7 @@ hand_ranking_table = (
     'triple',
     'void2',
     'rare double',
-    'squre',
+    'square',
     'double',
     'rare single',
     'single',

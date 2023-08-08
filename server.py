@@ -11,6 +11,7 @@ import debugpy
 class ServerHandler(socketserver.BaseRequestHandler):
     clients:dict[socket.socket, int] = {}
     game_core = TableClassic()
+    end_players = []
     """
     The RequestHandler class for our server.
     It is instantiated once per connection to the server, and must
@@ -39,7 +40,23 @@ class ServerHandler(socketserver.BaseRequestHandler):
                 package = pickle.dumps(Package.YourTurn(self.game_core.players[i].lastplayed))
                 client.send(package)
                 current_turn_index = i
+                
                 break
+        
+        in_game_count = 0
+        for player in self.game_core.players:
+            if player.in_game:
+                in_game_count += 1
+
+        if in_game_count <= 1:
+            win_player_name = self.game_core.players[self.end_players[0]].name
+            for client, i in self.clients.items():
+                if i == self.end_players[0]:
+                    package = pickle.dumps(Package.GameOver('你'))
+                else:
+                    package = pickle.dumps(Package.GameOver(win_player_name))
+                client.send(package)
+
 
         for client, i in self.clients.items():
             if i != current_turn_index:
@@ -56,6 +73,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
             return
         
         self.clients[self.request] = len(self.clients)  
+        player_index = self.clients[self.request]
 
         while True:
             # self.request is the TCP socket connected to the client
@@ -69,18 +87,24 @@ class ServerHandler(socketserver.BaseRequestHandler):
                     hand: Hand = package.hand
                     if hand is not None:
                         self.game_core.play_hand(hand)
+                        for card in hand.card:
+                            self.game_core.players[player_index].cards.remove(card)
 
                         if hand.erased_card is not None:
                             self.game_core.erase(hand.erased_card)
+                            self.game_core.players[player_index].cards.remove(hand.erased_card)
+                            print(self.game_core.players[player_index].cards)
+
+                        # update table for all player
+                        package = pickle.dumps(Package.PrevHand(hand))
+                        for client in self.clients.keys():
+                            client.send(package)
+
                     self.game_core.turn_forward(hand is not None)
                     self.notifyNextTurnPlayer()
 
-                    # update table for all player
-                    if self.game_core.get_player(-1).lastplayed:
-                        prev_hand = self.game_core.previous_hand
-                        package = pickle.dumps(Package.PrevHand(prev_hand))
-                        for client in self.clients.keys():
-                            client.send(package)
+                    if len(self.game_core.players[player_index].cards) == 0:
+                        self.end_players.append(player_index)
                 case Package.ChkValid():
                     hands = package.hands
 
