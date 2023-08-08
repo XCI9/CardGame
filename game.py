@@ -355,8 +355,8 @@ class TableClassic(Table):
         if shift == -1:
             prev_holder = (3 + holder - 1) % 3
             if not self.players[prev_holder].in_game:
-                next_holder = (3 + next_holder - 1) % 3
-            return self.players[next_holder]
+                prev_holder = (3 + prev_holder - 1) % 3
+            return self.players[prev_holder]
 
     def turn_forward(self, played_hand: bool) -> None:
         """Make turn forward. check whether active player wins.
@@ -367,7 +367,7 @@ class TableClassic(Table):
             Input True when player plays a hand.
             Input False when player pass his trun.
         """
-        active_player = self.get_player(+1)
+        active_player = self.get_player()
         next_active_player = self.get_player(+1)
         # check if active player wins
         if len(active_player.cards) == 0:
@@ -390,13 +390,7 @@ class TableClassic(Table):
         self._token = next_holder
 
     def play_hand(self, newhand: Hand) -> None:
-        """play a hand onto table. Update rule9's if matches.
-        
-        Arguments
-        --------
-        newhand : Hand
-            The hand to be played onto table.
-        """
+        """play a hand onto table. Update rule9's if matches."""
         self.previous_hand = newhand
         self.cards += list(newhand.card)
         has9 = any(card == 9 for card in newhand.card)
@@ -418,7 +412,6 @@ class TableClassic(Table):
     def erase(self, card: int) -> None:
         """Play one card onto table without any side effect."""
         self.cards += [card]
-
 
 
 class Player:
@@ -463,6 +456,7 @@ class Player:
             + f'selected_cards : {self.selected_cards}'
         )
         return string
-
-
+    def remove_cards(self, cards):
+        for card in cards:
+            self.cards.remove(card)
 
