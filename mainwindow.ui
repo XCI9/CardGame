@@ -116,7 +116,7 @@
       <x>140</x>
       <y>460</y>
       <width>51</width>
-      <height>16</height>
+      <height>21</height>
      </rect>
     </property>
     <property name="font">
@@ -137,7 +137,7 @@
       <x>80</x>
       <y>460</y>
       <width>51</width>
-      <height>16</height>
+      <height>21</height>
      </rect>
     </property>
     <property name="font">
@@ -158,7 +158,7 @@
       <x>20</x>
       <y>460</y>
       <width>51</width>
-      <height>16</height>
+      <height>21</height>
      </rect>
     </property>
     <property name="font">
@@ -237,6 +237,27 @@
     </property>
     <property name="alignment">
      <set>Qt::AlignCenter</set>
+    </property>
+   </widget>
+   <widget class="QLabel" name="card_count">
+    <property name="geometry">
+     <rect>
+      <x>200</x>
+      <y>460</y>
+      <width>401</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
+    <property name="text">
+     <string>剩餘牌數: PlayerA-10, PlayerB-10</string>
     </property>
    </widget>
   </widget>

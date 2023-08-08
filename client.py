@@ -17,6 +17,7 @@ class NetworkHandler(QThread):
     gameover = Signal(str)
     change_turn = Signal(str)
     response_playable = Signal(list)
+    update_cards_count = Signal(list)
 
     def __init__(self, socket: socket.socket):
         super().__init__()
@@ -53,6 +54,9 @@ class NetworkHandler(QThread):
                 case Package.GameOver():
                     winner = package.winner
                     self.gameover.emit(winner)
+                case Package.CardLeft():
+                    cards_count = package.cards_count
+                    self.update_cards_count.emit(cards_count)
                 case _:
                     raise NotImplementedError
 

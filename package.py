@@ -12,6 +12,10 @@ class Package:
         hand: Hand
 
     @dataclass(init=True)
+    class CardLeft:
+        cards_count: list[tuple[str,int]]
+
+    @dataclass(init=True)
     class InitCard:
         cards: list
 
