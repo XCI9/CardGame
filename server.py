@@ -62,6 +62,9 @@ class ServerHandler(socketserver.BaseRequestHandler):
                     hand: Hand = package.hand
                     if hand is not None:
                         self.game_core.play_hand(hand)
+
+                        if hand.erased_card is not None:
+                            self.game_core.erase(hand.erased_card)
                     self.game_core.turn_forward(hand is not None)
                     self.notifyNextTurnPlayer()
 

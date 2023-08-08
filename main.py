@@ -127,8 +127,8 @@ class MainWindow(QMainWindow):
         self.ui.cannot_play_msg.hide()
 
         # remove played card from hand
-        if card_type.eliminate_card is not None:
-            self.scene.removeCard(card_type.eliminate_card)
+        if card_type.hand.erased_card is not None:
+            self.scene.removeCard(card_type.hand.erased_card)
         self.scene.removeCards(hand.card)
 
         # put played card onto table
@@ -153,6 +153,9 @@ class MainWindow(QMainWindow):
     def updateTable(self, hand: Hand):
         for card in hand.card:
             self.scene.playCard(card)
+
+        if hand.erased_card is not None:
+            self.scene.playCard(hand.erased_card)
         #if card_type.eliminate_card is not None:
         #    self.scene.playCard(card_type.eliminate_card)
 
