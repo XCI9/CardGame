@@ -82,7 +82,7 @@ hand_ranking_table = (
     'triple',
     'void2',
     'rare double',
-    'squre',
+    'square',
     'double',
     'rare single',
     'single',
@@ -267,7 +267,7 @@ class Player:
             + f'selected_cards : {self.selected_cards}'
         )
         return string
-    def remove_cards(self, cards: tuple) -> bool:
+    def remove_cards(self, cards: tuple | list) -> bool:
         try:
             for card in cards:
                 self.cards.remove(card)
@@ -423,6 +423,7 @@ class TableClassic(Table):
         # check if active player wins
         if len(active_player.cards) == 0:
             active_player.in_game = False
+            next_active_player.lastplayed = True
         # turn forward to next player
         if played_hand:
             for player in self.players:
