@@ -369,23 +369,25 @@ class TableClassic(Table):
         """
         active_player = self.get_player(+1)
         next_active_player = self.get_player(+1)
-
+        # check if active player wins
+        if len(active_player.cards) == 0:
+            active_player.in_game = False
+        # turn forward to next player
         if played_hand:
             for player in self.players:
                 player.lastplayed = False
             active_player.lastplayed = True
         active_player.his_turn = False
         next_active_player.his_turn = True
-
+        if next_active_player.lastplayed:
+            self.empty_previous_hand()
+        # pass token to next player
         self.turn += 1 
         holder = self._token
         next_holder = (holder + 1) % 3
         if not self.players[next_holder].in_game:
             next_holder = (next_holder + 1) % 3
         self._token = next_holder
-
-        if len(self.players[holder].cards) == 0:
-            self.players[holder].in_game = False
 
     def play_hand(self, newhand: Hand) -> None:
         """play a hand onto table. Update rule9's if matches.
