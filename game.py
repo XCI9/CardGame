@@ -267,6 +267,14 @@ class Player:
             + f'selected_cards : {self.selected_cards}'
         )
         return string
+    def remove_cards(self, cards: tuple) -> bool:
+        try:
+            for card in cards:
+                self.cards.remove(card)
+        except ValueError:
+            return False
+        return True
+        
 
 class TableClassic(Table):
     """A game table for player to play a game with classic game mode.
@@ -433,13 +441,7 @@ class TableClassic(Table):
         self._token = next_holder
 
     def play_hand(self, newhand: Hand) -> None:
-        """play a hand onto table. Update rule9's if matches.
-        
-        Arguments
-        --------
-        newhand : Hand
-            The hand to be played onto table.
-        """
+        """play a hand onto table. Update rule9's if matches."""
         self.previous_hand = newhand
         self.cards += list(newhand.card)
         has9 = any(card == 9 for card in newhand.card)
@@ -461,9 +463,3 @@ class TableClassic(Table):
     def erase(self, card: int) -> None:
         """Play one card onto table without any side effect."""
         self.cards += [card]
-
-
-
-
-
-
