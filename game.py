@@ -267,6 +267,14 @@ class Player:
             + f'selected_cards : {self.selected_cards}'
         )
         return string
+    def remove_cards(self, cards: tuple) -> bool:
+        try:
+            for card in cards:
+                self.cards.remove(card)
+        except ValueError:
+            return False
+        return True
+        
 
 class TableClassic(Table):
     """A game table for player to play a game with classic game mode.
@@ -455,50 +463,3 @@ class TableClassic(Table):
     def erase(self, card: int) -> None:
         """Play one card onto table without any side effect."""
         self.cards += [card]
-
-
-class Player:
-    """A player in a table.
-
-    Instance variables
-    ----------
-    name : string
-        The name of player.
-    table : Table
-        The table this player joined.
-    cards : list[int]
-        The cards player has.
-    selected_cards : list[int]
-        The cards that plater selected.
-    lastplayed : bool
-        If all other players choose to pass their turn after a player 
-        has played a hand, that player can play any hand on to the tabel
-        and he is not allowed to pass the turn.
-    his_turn : bool
-        True when the game is in player's turn.
-        False when the player is wait for other players.
-    in_game : bool
-        True when player is still in the game. If a player plays all of his cards
-        ,he finishs his game, so it'll becomes Flase.
-    """
-    def __init__(self, name = 'None') -> None:
-        self.name = name
-        self.cards = []
-        self.selected_cards = []
-        self.lastplayed = False
-        self.his_turn = False
-        self.in_game = False
-
-    def __repr__(self) -> str:
-        string = ( 
-            f'name : {self.name}\n'
-            + f'his_turn : {self.his_turn}\n'
-            + f'in_game : {self.in_game}\n'
-            + f'lastplayed : {self.lastplayed}\n'
-            + f'cards :\n{self.cards}\n'
-            + f'selected_cards : {self.selected_cards}'
-        )
-        return string
-
-
-
