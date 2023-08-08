@@ -110,7 +110,7 @@
      </item>
     </layout>
    </widget>
-   <widget class="QLabel" name="rule19">
+   <widget class="QLabel" name="rule29">
     <property name="geometry">
      <rect>
       <x>140</x>
@@ -131,7 +131,7 @@
      <string>3壓1✘</string>
     </property>
    </widget>
-   <widget class="QLabel" name="rule29">
+   <widget class="QLabel" name="rule19">
     <property name="geometry">
      <rect>
       <x>80</x>
@@ -183,7 +183,7 @@
      </rect>
     </property>
     <property name="title">
-     <string>上家</string>
+     <string>前組牌型</string>
     </property>
     <widget class="QWidget" name="horizontalLayoutWidget_2">
      <property name="geometry">

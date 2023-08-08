@@ -116,7 +116,7 @@ class PublicCardPlacer:
 
         group.addToGroup(card)
         group.addToGroup(number)
-        group.setY(100)
+        group.setY(60)
 
         return group
 
