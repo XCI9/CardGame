@@ -254,7 +254,7 @@ class TableClassic(Table):
     """
     def __init__(self) -> None:
         self.cards = []
-        self.players = []
+        self.players: list[Player] = []
         self.previous_hand = Hand((), 'None', -1, -1)
         self.turn = 0
         self._token = 0
@@ -284,6 +284,7 @@ class TableClassic(Table):
         # decide dealer
         dealer_ind = random.randint(0, 2)
         self.players[dealer_ind].cards.append(1)
+        self.players[dealer_ind].lastplayed = True
         self.players[dealer_ind].his_turn = True
         # deal
         deck = list(range(2, 32))
@@ -297,12 +298,14 @@ class TableClassic(Table):
         self._token = dealer_ind
         self.turn = 1
 
+        return True
+
     def is_playable_hand(self, newhand: Hand) -> tuple:
         """Evaluate whether a hand is playable now."""
+        if len(self.cards) == 0 and 1 not in newhand.card:
+            return False, "首家需要打出1"
         if self.previous_hand.rank == 'None':
             return True, None
-        if len(self.cards) == 0 and 0 not in newhand.card:
-            return False, "首家需要打出1"
         if (len(self.previous_hand) == 1 and len(newhand) == 2):
             if self.rule9:
                 return True, None

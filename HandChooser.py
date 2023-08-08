@@ -4,10 +4,12 @@ from PySide6.QtCore import Qt, Signal, QAbstractListModel, QModelIndex, QSize, S
 from PySide6.QtGui import QStandardItem, QStandardItemModel, QPixmap, QRegion, QPainter
 from mainwindow_ui import Ui_MainWindow
 
+from package import Package
 from cardtype_ui import Ui_Form as CardTypeForm
 from canva import PrivateCardPlacer
 from game import *
-from copy import deepcopy
+import socket
+import pickle
 
 class CardTypeBlock(QWidget):
     def __init__(self, playable = True, hand:Hand = None, parent=None):
@@ -107,10 +109,10 @@ class CardListModel(QAbstractListModel):
 class HandChooser:
     enableEliminate = Signal()
     disableElimate = Signal()
-    def __init__(self, ui: Ui_MainWindow, board: TableClassic):
+    def __init__(self, ui: Ui_MainWindow, sock: socket.socket):
         self.ui = ui
         self.listView = ui.cardChooser
-        self.board = board
+        self.socket = sock
 
         self.listView.setSelectionMode(QListView.SingleSelection)
         self.listView.setSelectionBehavior(QListView.SelectRows)
@@ -211,12 +213,29 @@ class HandChooser:
         possible_types = evaluate_cards(cards)
         #print(possible_types)
 
-        self.cardtypes = []
-        for possible_type in possible_types:
-            playable, not_playable_reason = self.board.is_playable_hand(possible_type)
-            #playable = False
+        self.socket.send(pickle.dumps(Package.ChkValid(possible_types)))
 
-            cardtype = CardTypeBlock(playable, possible_type)
+        #self.cardtypes = []
+        #for possible_type in possible_types:
+        #    #playable, not_playable_reason = self.board.is_playable_hand(possible_type)
+        #    playable, not_playable_reason = self.socket.send(Package.ChkValid(possible_type))
+        #    #playable = False
+#
+        #    cardtype = CardTypeBlock(playable, possible_type)
+        #    if not playable:
+        #        cardtype.setStyleSheet('QLabel{color:#999}')
+        #        cardtype.ui.cannot_play_reason.setText(not_playable_reason)
+        #        cardtype.ui.cannot_play_reason.show()
+        #    self.cardtypes.append(cardtype)
+#
+        #self.data_model = CardListModel(self.cardtypes)  # Example data
+        #self.listView.setModel(self.data_model)
+        self.ui.eliminate.hide()
+
+    def updatePlayableCard(self, replies: list):
+        self.cardtypes = []
+        for hand, playable, not_playable_reason in replies:
+            cardtype = CardTypeBlock(playable, hand)
             if not playable:
                 cardtype.setStyleSheet('QLabel{color:#999}')
                 cardtype.ui.cannot_play_reason.setText(not_playable_reason)
@@ -225,7 +244,7 @@ class HandChooser:
 
         self.data_model = CardListModel(self.cardtypes)  # Example data
         self.listView.setModel(self.data_model)
-        self.ui.eliminate.hide()
+            
 
     def getSelectedCard(self) -> tuple[int, CardTypeBlock]:
         selection_model = self.listView.selectionModel()

@@ -116,7 +116,7 @@ class PublicCardPlacer:
 
         group.addToGroup(card)
         group.addToGroup(number)
-        group.setY(150)
+        group.setY(100)
 
         return group
 
@@ -207,9 +207,11 @@ class Canva(QGraphicsScene):
 
         self.played_card = PublicCardPlacer()
 
-        self.slot = PrivateCardPlacer(len(number))
-        for i in range(len(number)):
-            card = Card(PADDING + i* self.gap , 441, number[i])
+        self.slot = PrivateCardPlacer(11)
+        
+    def initCard(self, numbers:list):
+        for i, n in enumerate(numbers):
+            card = Card(PADDING + i* self.gap, 350, n)#Card(PADDING + i* self.gap , 441, n)
             card.setSlotManager(self.slot)
             self.addItem(card)
             self.slot.setCard(i, card)

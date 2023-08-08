@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1016</width>
+    <width>1020</width>
     <height>509</height>
    </rect>
   </property>
@@ -68,7 +68,7 @@
    <widget class="QWidget" name="horizontalLayoutWidget">
     <property name="geometry">
      <rect>
-      <x>810</x>
+      <x>808</x>
       <y>440</y>
       <width>201</width>
       <height>41</height>
@@ -78,7 +78,7 @@
      <item>
       <widget class="QPushButton" name="pass_">
        <property name="enabled">
-        <bool>true</bool>
+        <bool>false</bool>
        </property>
        <property name="text">
         <string>Pass</string>
@@ -91,7 +91,7 @@
      <item>
       <widget class="QPushButton" name="submit">
        <property name="enabled">
-        <bool>true</bool>
+        <bool>false</bool>
        </property>
        <property name="text">
         <string>打出</string>
@@ -163,7 +163,7 @@
      <rect>
       <x>810</x>
       <y>10</y>
-      <width>191</width>
+      <width>201</width>
       <height>81</height>
      </rect>
     </property>
@@ -175,12 +175,33 @@
       <rect>
        <x>0</x>
        <y>20</y>
-       <width>191</width>
+       <width>201</width>
        <height>61</height>
       </rect>
      </property>
      <layout class="QHBoxLayout" name="prev_hand"/>
     </widget>
+   </widget>
+   <widget class="QLabel" name="turn_player_name">
+    <property name="geometry">
+     <rect>
+      <x>660</x>
+      <y>460</y>
+      <width>141</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true"/>
+    </property>
+    <property name="text">
+     <string>目前輪到: Player A</string>
+    </property>
    </widget>
   </widget>
   <widget class="QMenuBar" name="menubar">
@@ -188,7 +209,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1016</width>
+     <width>1020</width>
      <height>22</height>
     </rect>
    </property>
