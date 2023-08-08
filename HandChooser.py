@@ -21,6 +21,8 @@ class CardTypeBlock(QWidget):
         self.ui.cannot_play_reason.hide()
 
         if self.hand is not None:
+
+            # "<N> [<N> <N>]"
             card_number_str = ''
             for number in hand.card:
                 card_number_str += f'{number} '
@@ -35,7 +37,7 @@ class CardTypeBlock(QWidget):
                     card_type_name = '順子'
                 case 'rare double' | 'double' | 'void2':
                     card_type_name = f'對子{hand.value}'
-                case 'squre':
+                case 'square':
                     card_type_name = '完全平方數'
                 case 'rare single' | 'single':
                     card_type_name = f'單支{hand.value}'
@@ -46,7 +48,10 @@ class CardTypeBlock(QWidget):
             if hand.suit != -1:
                 self.ui.value.setText(f'附帶{hand.suit}')
             else:
-                self.ui.value.setText(f'{hand.value}')
+                if hand.rank in ['triple', 'double', 'single']:
+                    self.ui.value.setText(f'附帶None')
+                else:
+                    self.ui.value.setText(f'{hand.value}')
             self.ui.eliminate.setText('可消除' if hand.eraseable else '')
 
 
