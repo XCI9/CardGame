@@ -224,6 +224,7 @@ def evaluate_cards(cards: tuple[int] | list[int],
 class Table:
     def __init__(self) -> None:
         pass
+class Player: pass
 
 class TableClassic(Table):
     """A game table for player to play a game with classic game mode.
@@ -253,6 +254,7 @@ class TableClassic(Table):
     is_playable_hand -- Evaluate whether a hand is playable now.
     play_hand -- play a hand onto table. Update rule9's if matches.
     erase -- Play one card onto table without any side effect.
+    get_player -- Get the player object.
     turn_forward -- Make turn forward. check whether active player wins.
     empty_previous_hand -- Make previous played hand empty.
     """
@@ -331,6 +333,31 @@ class TableClassic(Table):
         else:
             if newhand > self.previous_hand: return True, ''
         return False, "無法壓過場上的牌"
+    
+    def get_player(self, shift: int = 0) -> Player:
+        """Get the player object.
+        
+        Argument
+        ----------
+        shift : int, optional (default is 0)
+            +1 to return next active player.
+            0 to return active player.
+            -1 to return previous active player.
+        """
+        holder = self._token
+        if shift == 0:
+            return self.players[holder]
+        if shift == +1:
+            next_holder = (holder + 1) % 3
+            if not self.players[next_holder].in_game:
+                next_holder = (next_holder + 1) % 3
+            return self.players[next_holder]
+        if shift == -1:
+            prev_holder = (3 + holder - 1) % 3
+            if not self.players[prev_holder].in_game:
+                next_holder = (3 + next_holder - 1) % 3
+            return self.players[next_holder]
+
     def turn_forward(self, played_hand: bool) -> None:
         """Make turn forward. check whether active player wins.
         
@@ -340,19 +367,22 @@ class TableClassic(Table):
             Input True when player plays a hand.
             Input False when player pass his trun.
         """
-        holder = self._token
-        next_holder = (holder + 1) % 3
-        if not self.players[next_holder].in_game:
-            next_holder = (next_holder + 1) % 3
+        active_player = self.get_player(+1)
+        next_active_player = self.get_player(+1)
 
         if played_hand:
             for player in self.players:
                 player.lastplayed = False
-            self.players[holder].lastplayed = True
-        self.players[holder].his_turn = False
-        self.players[next_holder].his_turn = True
-        self._token = next_holder
+            active_player.lastplayed = True
+        active_player.his_turn = False
+        next_active_player.his_turn = True
+
         self.turn += 1 
+        holder = self._token
+        next_holder = (holder + 1) % 3
+        if not self.players[next_holder].in_game:
+            next_holder = (next_holder + 1) % 3
+        self._token = next_holder
 
         if len(self.players[holder].cards) == 0:
             self.players[holder].in_game = False
