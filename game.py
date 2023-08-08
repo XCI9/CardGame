@@ -38,6 +38,7 @@ class Hand():
     value: int = -1
     suit: int = -1
     eraseable: bool = False
+    erased: int = -1
 
     def __gt__(self, other) -> bool:
         if ind_higher_ranking(self, other) == 1:
@@ -150,7 +151,7 @@ def evaluate_cards(cards: tuple[int] | list[int],
         ####  straight  ####
         if cards[2] - cards[1] == 1 and cards[1] - cards[0] == 1:
             rank = 'straight'
-            value = sum([max(int(x) for x in str(n)) for n in cards])
+            value = sum([max(int(digit) for digit in str(crad)) for crad in cards])
             suit = -1
             avaliable.append( Hand(cards, rank, value, suit) )
         ####  triple  ####
@@ -169,12 +170,13 @@ def evaluate_cards(cards: tuple[int] | list[int],
                 rank = 'rare triple'
                 avaliable.append( Hand(cards, rank, value, suit) )
             ####  void3  ####
-            if value == 0 :
+            elif value == 0 :
                 rank = 'void3'
                 avaliable.append( Hand(cards, rank, value, suit) )
             ####  triple  ####
-            rank = 'triple'
-            avaliable.append( Hand(cards, rank, value, suit) )        
+            else:
+                rank = 'triple'
+                avaliable.append( Hand(cards, rank, value, suit) )
     if len(cards) == 2:
         ####  square  ####
         if cards[0]**2 == cards[1]:
@@ -196,14 +198,14 @@ def evaluate_cards(cards: tuple[int] | list[int],
             if value == 0:
                 rank = 'void2'
                 avaliable.append( Hand(cards, rank, value, suit) )
-            ####  double  ####                
+            ####  double  ####
             rank = 'double'
             avaliable.append( Hand(cards, rank, value, suit) )
     if len(cards) == 1:
         rank = 'single'
         if len(_reprc) == 1:
             value = _reprc[0]
-            suit = 0
+            suit = -1
             avaliable.append( Hand(cards, rank, value, suit) )
         if len(_reprc) == 2:
             value = _reprc[0]
@@ -214,12 +216,15 @@ def evaluate_cards(cards: tuple[int] | list[int],
                 suit = _reprc[0]
                 avaliable.append( Hand(cards, rank, value, suit) )
     for hand in avaliable:
-        if len(set(str(hand.value) + str(hand.suit))) == 1:
+        if (len(set(str(hand.value) + str(hand.suit))) == 1 and
+            hand.suit != -1):
             hand.eraseable = True
 
     return avaliable
 
-class Table: pass
+class Table:
+    def __init__(self) -> None:
+        pass
 
 class TableClassic(Table):
     """A game table for player to play a game with classic game mode.
@@ -245,7 +250,7 @@ class TableClassic(Table):
     Public methods
     ----------
     join -- Make a player join this table, return False for join denied.
-    start -- Starts game.
+    start -- Start game.
     is_playable_hand -- Evaluate whether a hand is playable now.
     play_hand -- play a hand onto table. Update rule9's if matches.
     erase -- Play one card onto table without any side effect.
@@ -254,7 +259,7 @@ class TableClassic(Table):
     """
     def __init__(self) -> None:
         self.cards = []
-        self.players: list[Player] = []
+        self.players = []
         self.previous_hand = Hand((), 'None', -1, -1)
         self.turn = 0
         self._token = 0
@@ -278,13 +283,13 @@ class TableClassic(Table):
         self.players.append(player)
         return True
 
-    def start(self) -> False:
+    def start(self) -> bool:
+        "Start game."
         if len(self.players) != 3:
             return False
         # decide dealer
         dealer_ind = random.randint(0, 2)
         self.players[dealer_ind].cards.append(1)
-        self.players[dealer_ind].lastplayed = True
         self.players[dealer_ind].his_turn = True
         # deal
         deck = list(range(2, 32))
@@ -298,34 +303,32 @@ class TableClassic(Table):
         self._token = dealer_ind
         self.turn = 1
 
-        return True
-
     def is_playable_hand(self, newhand: Hand) -> tuple:
         """Evaluate whether a hand is playable now."""
-        if len(self.cards) == 0 and 1 not in newhand.card:
-            return False, "首家需要打出1"
         if self.previous_hand.rank == 'None':
-            return True, None
+            return True, ''
+        if len(self.cards) == 0 and 0 not in newhand.card:
+            return False, "首家需要打出1"
         if (len(self.previous_hand) == 1 and len(newhand) == 2):
             if self.rule9:
-                return True, None
+                return True, ''
             else:
                 return False, "2壓1✘"
         if (len(self.previous_hand) == 1 and len(newhand) == 2):
-            if self.rule9:
-                return True, None
+            if self.rule19:
+                return True, ''
             else:
                 return False, "3壓2✘"
         if (len(self.previous_hand) == 1 and len(newhand) == 2):
-            if self.rule9:
-                return True, None
+            if self.rule29:
+                return True, ''
             else:
                 return False, "3壓1✘"
-        
+
         if self.previous_hand.rank in ('triangle', 'straight', 'square'):
-            if newhand >= self.previous_hand: return True, None
+            if newhand >= self.previous_hand: return True, ''
         else:
-            if newhand > self.previous_hand: return True, None
+            if newhand > self.previous_hand: return True, ''
         return False, "無法壓過場上的牌"
     def turn_forward(self, played_hand: bool) -> None:
         """Make turn forward. check whether active player wins.
