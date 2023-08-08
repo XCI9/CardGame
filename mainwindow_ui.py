@@ -97,6 +97,13 @@ class Ui_MainWindow(object):
         self.turn_player_name.setGeometry(QRect(610, 460, 191, 21))
         self.turn_player_name.setFont(font)
         self.turn_player_name.setStyleSheet(u"")
+        self.gameover_msg = QLabel(self.centralwidget)
+        self.gameover_msg.setObjectName(u"gameover_msg")
+        self.gameover_msg.setGeometry(QRect(10, 170, 791, 71))
+        font1 = QFont()
+        font1.setPointSize(36)
+        self.gameover_msg.setFont(font1)
+        self.gameover_msg.setAlignment(Qt.AlignCenter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
@@ -119,5 +126,6 @@ class Ui_MainWindow(object):
         self.rule9.setText(QCoreApplication.translate("MainWindow", u"2\u58d31\u2718", None))
         self.groupBox.setTitle(QCoreApplication.translate("MainWindow", u"\u4e0a\u5bb6", None))
         self.turn_player_name.setText(QCoreApplication.translate("MainWindow", u"\u76ee\u524d\u8f2a\u5230: Player A", None))
+        self.gameover_msg.setText(QCoreApplication.translate("MainWindow", u"\u904a\u6232\u7d50\u675f! \u4f60\u8d0f\u4e86!", None))
     # retranslateUi
 

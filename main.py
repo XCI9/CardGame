@@ -58,7 +58,6 @@ class MainWindow(QMainWindow):
         super().__init__(parent)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-        self.setWindowTitle('籤筒')
 
         dialog = ServerClientDialog()
         result = dialog.exec()
@@ -78,6 +77,7 @@ class MainWindow(QMainWindow):
             self.socket.connect((ip, port))
 
         name = dialog.ui.name.text()
+        self.setWindowTitle(f'籤筒-User {name}')
         self.socket.send(pickle.dumps(Package.SendName(name)))
 
         self.scene = Canva()
@@ -103,6 +103,7 @@ class MainWindow(QMainWindow):
 
         self.ui.cannot_play_msg.hide()
         self.ui.eliminate.hide()
+        self.ui.gameover_msg.hide()
 
         self.network_handler = NetworkHandler(self.socket)
         self.network_handler.response_playable.connect(self.handChooser.updatePlayableCard)
@@ -110,7 +111,13 @@ class MainWindow(QMainWindow):
         self.network_handler.init_card.connect(self.scene.initCard)
         self.network_handler.your_turn.connect(self.setMyTurn)
         self.network_handler.change_turn.connect(self.changeTurnName)
+        self.network_handler.gameover.connect(self.gameover)
         self.network_handler.start()
+
+    @Slot(str)
+    def gameover(self, winner: str):
+        self.ui.gameover_msg.setText(f'遊戲結束! {winner}贏了!')
+        self.ui.gameover_msg.show()
 
     @Slot(str)
     def changeTurnName(self, name:str):

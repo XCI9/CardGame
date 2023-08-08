@@ -39,6 +39,7 @@ class NetworkHandler(QThread):
                 case Package.GameOver():
                     winner = package.winner
                     print(f'gameover, winner:{winner}')
+                    self.gameover.emit(winner)
                 case Package.YourTurn():
                     print('my turn')
                     force = package.force
@@ -49,6 +50,9 @@ class NetworkHandler(QThread):
                 case Package.ChangeTurn():
                     name = package.name
                     self.change_turn.emit(name)
+                case Package.GameOver():
+                    winner = package.winner
+                    self.gameover.emit(winner)
                 case _:
                     raise NotImplementedError
 
