@@ -24,9 +24,17 @@ class Package:
         force: bool
 
     @dataclass(init=True)
+    class ChangeTurn:
+        name: str
+
+    @dataclass(init=True)
     class ChkValid:
         hands: list[Hand]
 
     @dataclass(init=True)
     class ResValid:
         replies: list[tuple[Hand, bool, str]]
+
+    @dataclass(init=True)
+    class SendName:
+        name: str

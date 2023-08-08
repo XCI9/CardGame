@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>331</width>
+    <width>333</width>
     <height>105</height>
    </rect>
   </property>
@@ -38,12 +38,15 @@
    <property name="text">
     <string>server</string>
    </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
   </widget>
   <widget class="QLineEdit" name="port">
    <property name="geometry">
     <rect>
-     <x>70</x>
-     <y>70</y>
+     <x>250</x>
+     <y>40</y>
      <width>61</width>
      <height>20</height>
     </rect>
@@ -55,8 +58,8 @@
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>30</x>
-     <y>70</y>
+     <x>210</x>
+     <y>40</y>
      <width>31</width>
      <height>21</height>
     </rect>
@@ -68,8 +71,8 @@
   <widget class="QRadioButton" name="client">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>40</y>
+     <x>110</x>
+     <y>10</y>
      <width>61</width>
      <height>20</height>
     </rect>
@@ -81,9 +84,9 @@
   <widget class="QLineEdit" name="ip">
    <property name="geometry">
     <rect>
-     <x>110</x>
-     <y>40</y>
-     <width>201</width>
+     <x>210</x>
+     <y>10</y>
+     <width>101</width>
      <height>20</height>
     </rect>
    </property>
@@ -94,14 +97,40 @@
   <widget class="QLabel" name="label_2">
    <property name="geometry">
     <rect>
-     <x>90</x>
-     <y>40</y>
+     <x>180</x>
+     <y>10</y>
      <width>16</width>
      <height>21</height>
     </rect>
    </property>
    <property name="text">
     <string>ip</string>
+   </property>
+  </widget>
+  <widget class="QLineEdit" name="name">
+   <property name="geometry">
+    <rect>
+     <x>70</x>
+     <y>40</y>
+     <width>111</width>
+     <height>20</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>Player</string>
+   </property>
+  </widget>
+  <widget class="QLabel" name="label_3">
+   <property name="geometry">
+    <rect>
+     <x>20</x>
+     <y>40</y>
+     <width>41</width>
+     <height>21</height>
+    </rect>
+   </property>
+   <property name="text">
+    <string>name</string>
    </property>
   </widget>
  </widget>
