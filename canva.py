@@ -198,6 +198,8 @@ class Canva(QGraphicsScene):
 
         self.block_size = 10
         self.gap = int(2.5 * self.block_size)
+
+        # anchor block to make (0, 0) on left top
         self.block = QGraphicsRectItem(0, 0, 1, 1)
         self.addItem(self.block)
 

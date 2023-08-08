@@ -1,5 +1,5 @@
 import sys
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QAbstractItemView, QStyledItemDelegate, QVBoxLayout, QListView, QHBoxLayout, QStyle
+from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QAbstractItemView, QStyledItemDelegate, QVBoxLayout, QListView, QHBoxLayout, QStyle
 from PySide6.QtCore import Qt, Signal, QAbstractListModel, QModelIndex, QSize, Slot
 from PySide6.QtGui import QStandardItem, QStandardItemModel, QPixmap, QRegion, QPainter
 from mainwindow_ui import Ui_MainWindow
@@ -39,6 +39,10 @@ class MainWindow(QMainWindow):
 
         self.prev_hand = None
 
+        self.rule_info:list[tuple[bool,QLabel, str]] = [(self.board.rule9, self.ui.rule9, '2壓1'),
+                                                        (self.board.rule19, self.ui.rule19, '3壓2'),
+                                                        (self.board.rule29, self.ui.rule29, '3壓1')]
+
         self.ui.cannot_play_msg.hide()
         self.ui.eliminate.hide()
 
@@ -50,33 +54,39 @@ class MainWindow(QMainWindow):
     def playCard(self):
         selected_index, card_type = self.handChooser.getSelectedCard()
         
+        # nothing selected
         if selected_index == -1:
             self.ui.cannot_play_msg.show()
             return
         
         hand = card_type.hand
+
         self.ui.cannot_play_msg.hide()
+
+        # remove played card from hand
         if card_type.eliminate_card is not None:
             self.scene.removeCard(card_type.eliminate_card)
         self.scene.removeCards(hand.card)
 
+        # put played card onto table
         self.board.play_hand(hand)
         for card in hand.card:
             self.scene.playCard(card)
         if card_type.eliminate_card is not None:
             self.scene.playCard(card_type.eliminate_card)
+
         self.handChooser.clearChoose()
         
-        for rule, label, name in [(self.board.rule9, self.ui.rule9, '2壓1'),
-                                  (self.board.rule19, self.ui.rule19, '3壓2'),
-                                  (self.board.rule29, self.ui.rule29, '3壓1')]:
+        # update rule hint
+        for rule, label, name in self.rule_info:
             if rule is True:
                 label.setText(f'{name}✓')
-                label.setStyleSheet('QLabel{color:#22b14c}')
+                label.setStyleSheet('QLabel{color:#22b14c}') # green
             else:
                 label.setText(f'{name}✘')
                 label.setStyleSheet('QLabel{color:#f00}')
 
+        # update previous hand 
         if self.prev_hand is not None:
             self.ui.prev_hand.removeWidget(self.prev_hand)
             self.prev_hand.deleteLater()

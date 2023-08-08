@@ -20,6 +20,7 @@ class CardTypeBlock(QWidget):
         self.ui.setupUi(self)
         self.ui.cannot_play_reason.hide()
 
+        # set displayed info
         if self.hand is not None:
 
             # "<N> [<N> <N>]"
@@ -41,10 +42,10 @@ class CardTypeBlock(QWidget):
                     card_type_name = '完全平方數'
                 case 'rare single' | 'single':
                     card_type_name = f'單支{hand.value}'
-
             
             self.ui.card.setText(card_number_str)
             self.ui.type.setText(card_type_name)
+
             if hand.suit != -1:
                 self.ui.value.setText(f'附帶{hand.suit}')
             else:
@@ -65,7 +66,6 @@ class CardTypeDelegate(QStyledItemDelegate):
         return index.data(Qt.SizeHintRole)
 
     def paint(self, painter, option, index):
-        
         if index.isValid():
             widget = index.data(Qt.DisplayRole)
             if isinstance(widget, CardTypeBlock):
@@ -178,13 +178,13 @@ class HandChooser:
                     if card_number == self.cardtypes[self.selected_index].eliminate_card:
                         current_selected_index = len(cardtypes) - 1
 
-            data_model = CardListModel(cardtypes)  # Example data
+            data_model = CardListModel(cardtypes)
             self.listView.setModel(data_model)
             self.listView.setCurrentIndex(data_model.index(current_selected_index, 0))
 
             self.is_choosing_eliminate = True
         else:
-            #get selected option
+            # get selected option
             selection_model = self.listView.selectionModel()
             #print(selection_model.currentIndex().row())
             eliminateNumber = selection_model.currentIndex().data(Qt.DisplayRole).ui.card.text()
@@ -216,7 +216,6 @@ class HandChooser:
             playable, not_playable_reason = self.board.is_playable_hand(possible_type)
             #playable = False
 
-            
             cardtype = CardTypeBlock(playable, possible_type)
             if not playable:
                 cardtype.setStyleSheet('QLabel{color:#999}')
