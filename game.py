@@ -308,7 +308,7 @@ class TableClassic(Table):
 
     def is_playable_hand(self, newhand: Hand) -> tuple:
         """Evaluate whether a hand is playable now."""
-        if len(self.cards) == 0 and 0 not in newhand.card:
+        if len(self.cards) == 0 and 1 not in newhand.card:
             return False, "首家需要打出1"
         if self.previous_hand.rank == 'None':
             return True, ''

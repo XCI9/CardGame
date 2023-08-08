@@ -4,6 +4,7 @@ from package import Package
 import pickle
 from game import *
 import threading
+import time
 
 
 class ServerHandler(socketserver.BaseRequestHandler):
@@ -25,6 +26,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
             cards = self.game_core.players[i].cards
             package = pickle.dumps(Package.InitCard(cards))
             client.send(package)
+        time.sleep(0.1)
         self.notifyNextTurnPlayer()
 
     def notifyNextTurnPlayer(self):
