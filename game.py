@@ -38,7 +38,6 @@ class Hand():
     value: int = -1
     suit: int = -1
     eraseable: bool = False
-    erased: int = -1
 
     def __gt__(self, other) -> bool:
         if ind_higher_ranking(self, other) == 1:
@@ -151,7 +150,7 @@ def evaluate_cards(cards: tuple[int] | list[int],
         ####  straight  ####
         if cards[2] - cards[1] == 1 and cards[1] - cards[0] == 1:
             rank = 'straight'
-            value = sum([max(int(digit) for digit in str(crad)) for crad in cards])
+            value = sum([max(int(digit) for digit in str(card)) for card in cards])
             suit = -1
             avaliable.append( Hand(cards, rank, value, suit) )
         ####  triple  ####
@@ -166,11 +165,11 @@ def evaluate_cards(cards: tuple[int] | list[int],
             _reprc.remove(value)
             suit = sum(_reprc)
             ####  rare triple  ####
-            if value > 3 :
+            if value > 3:
                 rank = 'rare triple'
                 avaliable.append( Hand(cards, rank, value, suit) )
             ####  void3  ####
-            elif value == 0 :
+            elif value == 0:
                 rank = 'void3'
                 avaliable.append( Hand(cards, rank, value, suit) )
             ####  triple  ####
@@ -259,7 +258,7 @@ class TableClassic(Table):
     """
     def __init__(self) -> None:
         self.cards = []
-        self.players = []
+        self.players: list[Player] = []
         self.previous_hand = Hand((), 'None', -1, -1)
         self.turn = 0
         self._token = 0
@@ -290,6 +289,7 @@ class TableClassic(Table):
         # decide dealer
         dealer_ind = random.randint(0, 2)
         self.players[dealer_ind].cards.append(1)
+        self.players[dealer_ind].lastplayed = True
         self.players[dealer_ind].his_turn = True
         # deal
         deck = list(range(2, 32))
@@ -302,24 +302,25 @@ class TableClassic(Table):
         self.players[2].in_game = True
         self._token = dealer_ind
         self.turn = 1
+        return True
 
     def is_playable_hand(self, newhand: Hand) -> tuple:
         """Evaluate whether a hand is playable now."""
-        if self.previous_hand.rank == 'None':
-            return True, ''
         if len(self.cards) == 0 and 0 not in newhand.card:
             return False, "首家需要打出1"
+        if self.previous_hand.rank == 'None':
+            return True, ''
         if (len(self.previous_hand) == 1 and len(newhand) == 2):
             if self.rule9:
                 return True, ''
             else:
                 return False, "2壓1✘"
-        if (len(self.previous_hand) == 1 and len(newhand) == 2):
+        if (len(self.previous_hand) == 2 and len(newhand) == 3):
             if self.rule19:
                 return True, ''
             else:
                 return False, "3壓2✘"
-        if (len(self.previous_hand) == 1 and len(newhand) == 2):
+        if (len(self.previous_hand) == 1 and len(newhand) == 3):
             if self.rule29:
                 return True, ''
             else:
