@@ -12,11 +12,11 @@ import socket
 import pickle
 
 class CardTypeBlock(QWidget):
-    def __init__(self, playable = True, hand:Hand = None, parent=None):
+    def __init__(self, playable = True, hand:Hand = None, need_erased_1 = False, parent=None):
         super().__init__(parent)
 
-        self.eliminate_card = None
         self.hand = hand
+        self.need_erased_1 = need_erased_1
         self.playable = playable
         self.ui = CardTypeForm()
         self.ui.setupUi(self)
@@ -56,6 +56,8 @@ class CardTypeBlock(QWidget):
                 else:
                     self.ui.value.setText(f'{hand.value}')
             self.ui.eliminate.setText('可消除' if hand.eraseable else '')
+            if self.hand.erased_card is not None:
+                self.ui.eliminate.setText(f'消除{self.hand.erased_card}')
 
 
 class CardTypeDelegate(QStyledItemDelegate):
@@ -141,7 +143,7 @@ class HandChooser:
         if self.is_choosing_eliminate:
             return
         
-        if selected_item_data.hand.eraseable:
+        if selected_item_data.hand.eraseable and not selected_item_data.need_erased_1:
             self.ui.eliminate.show()
         else:
             self.ui.eliminate.hide()
@@ -157,7 +159,7 @@ class HandChooser:
             self.ui.submit.hide()
             self.ui.eliminate.setText('選擇')
             cardtypes = []
-
+            
             cardtype = CardTypeBlock()
             cardtype.ui.card.setText(f'不消除')
             cardtype.ui.type.setText('')
@@ -167,9 +169,10 @@ class HandChooser:
 
             current_selected_index = 0
             for card in slot.slots:
-                card_number = card.getCardNumber()
+                
                 if card is not None and \
-                   card_number not in self.cardtypes[self.selected_index].hand.card:
+                   card.getCardNumber() not in self.cardtypes[self.selected_index].hand.card:
+                    card_number = card.getCardNumber()
                     cardtype = CardTypeBlock()
                     cardtype.ui.card.setText(f'{card_number}')
                     cardtype.ui.type.setText('')
@@ -177,7 +180,7 @@ class HandChooser:
                     cardtype.ui.eliminate.setText('')
                     cardtypes.append(cardtype)
 
-                    if card_number == self.cardtypes[self.selected_index].eliminate_card:
+                    if card_number == self.cardtypes[self.selected_index].hand.erased_card:
                         current_selected_index = len(cardtypes) - 1
 
             data_model = CardListModel(cardtypes)
@@ -191,11 +194,11 @@ class HandChooser:
             #print(selection_model.currentIndex().row())
             eliminateNumber = selection_model.currentIndex().data(Qt.DisplayRole).ui.card.text()
             if eliminateNumber == '不消除':
-                self.cardtypes[self.can_eliminate_index].eliminate_card = None
+                self.cardtypes[self.can_eliminate_index].hand.erased_card = None
                 self.cardtypes[self.can_eliminate_index].ui.eliminate.setText(f'可消除')
             else:
                 eliminateNumber = int(eliminateNumber)
-                self.cardtypes[self.can_eliminate_index].eliminate_card = eliminateNumber
+                self.cardtypes[self.can_eliminate_index].hand.erased_card = eliminateNumber
                 self.cardtypes[self.can_eliminate_index].ui.eliminate.setText(f'消除{eliminateNumber}')
 
             self.listView.setModel(self.data_model)
@@ -232,14 +235,21 @@ class HandChooser:
         #self.listView.setModel(self.data_model)
         self.ui.eliminate.hide()
 
-    def updatePlayableCard(self, replies: list):
-        self.cardtypes = []
+    def updatePlayableCard(self, replies: list[tuple[Hand, bool, str]]):
+        self.cardtypes: list[CardTypeBlock] = []
         for hand, playable, not_playable_reason in replies:
-            cardtype = CardTypeBlock(playable, hand)
-            if not playable:
-                cardtype.setStyleSheet('QLabel{color:#999}')
-                cardtype.ui.cannot_play_reason.setText(not_playable_reason)
-                cardtype.ui.cannot_play_reason.show()
+            hand.erased_card = None
+
+            # 1 can also be erased
+            if not playable and not_playable_reason == '首家需要打出1' and hand.eraseable:
+                hand.erased_card = 1
+                cardtype = CardTypeBlock(True, hand, need_erased_1=True)
+            else:
+                cardtype = CardTypeBlock(playable, hand)
+                if not playable:
+                    cardtype.setStyleSheet('QLabel{color:#999}')
+                    cardtype.ui.cannot_play_reason.setText(not_playable_reason)
+                    cardtype.ui.cannot_play_reason.show()
             self.cardtypes.append(cardtype)
 
         self.data_model = CardListModel(self.cardtypes)  # Example data

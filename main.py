@@ -1,7 +1,7 @@
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QDialog, QAbstractItemView, QStyledItemDelegate, QVBoxLayout, QListView, QHBoxLayout, QStyle
 from PySide6.QtCore import Qt, Signal, QAbstractListModel, QModelIndex, QSize, Slot
-from PySide6.QtGui import QStandardItem, QStandardItemModel, QPixmap, QRegion, QPainter
+from PySide6.QtGui import QStandardItem, QStandardItemModel, QPixmap, QRegion, QPainter, QIntValidator
 from mainwindow_ui import Ui_MainWindow
 from ServerClientDialog_ui import Ui_Dialog
 from canva import Canva
@@ -12,6 +12,7 @@ from server import startServer
 from package import Package
 import socket
 import pickle
+import os
 
 """
 The frame of this application
@@ -26,6 +27,15 @@ class ServerClientDialog(QDialog):
         super().__init__(parent)
         self.ui = Ui_Dialog()
         self.ui.setupUi(self)
+
+        self.setWindowTitle('籤筒啟動器')
+
+        only_int = QIntValidator()
+        only_int.setRange(0, 65536)
+        self.ui.port.setValidator(only_int)
+
+        #default name use current user name
+        self.ui.name.setText(os.getlogin())
 
         self.ui.client.toggled.connect(self.modeChange)
 
@@ -48,7 +58,7 @@ class MainWindow(QMainWindow):
         super().__init__(parent)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
-
+        self.setWindowTitle('籤筒')
 
         dialog = ServerClientDialog()
         result = dialog.exec()
@@ -61,12 +71,14 @@ class MainWindow(QMainWindow):
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         if role[0] == 'server':
-            startServer("127.0.0.1", port)
+            startServer("0.0.0.0", port)
             self.socket.connect(("127.0.0.1", port))
         elif role[0] == 'client':
             ip = role[2]
             self.socket.connect((ip, port))
-        
+
+        name = dialog.ui.name.text()
+        self.socket.send(pickle.dumps(Package.SendName(name)))
 
         self.scene = Canva()
         self.ui.canva.setScene(self.scene)
@@ -97,7 +109,12 @@ class MainWindow(QMainWindow):
         self.network_handler.update_table.connect(self.updateTable)
         self.network_handler.init_card.connect(self.scene.initCard)
         self.network_handler.your_turn.connect(self.setMyTurn)
+        self.network_handler.change_turn.connect(self.changeTurnName)
         self.network_handler.start()
+
+    @Slot(str)
+    def changeTurnName(self, name:str):
+        self.ui.turn_player_name.setText(f'目前輪到: {name}')
 
     @Slot()
     def chooseEliminate(self):
@@ -127,8 +144,8 @@ class MainWindow(QMainWindow):
         self.ui.cannot_play_msg.hide()
 
         # remove played card from hand
-        if card_type.eliminate_card is not None:
-            self.scene.removeCard(card_type.eliminate_card)
+        if card_type.hand.erased_card is not None:
+            self.scene.removeCard(card_type.hand.erased_card)
         self.scene.removeCards(hand.card)
 
         # put played card onto table
@@ -153,6 +170,9 @@ class MainWindow(QMainWindow):
     def updateTable(self, hand: Hand):
         for card in hand.card:
             self.scene.playCard(card)
+
+        if hand.erased_card is not None:
+            self.scene.playCard(hand.erased_card)
         #if card_type.eliminate_card is not None:
         #    self.scene.playCard(card_type.eliminate_card)
 

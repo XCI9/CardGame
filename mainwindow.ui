@@ -115,9 +115,14 @@
      <rect>
       <x>140</x>
       <y>460</y>
-      <width>41</width>
+      <width>51</width>
       <height>16</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">QLabel{color:#f00}</string>
@@ -131,9 +136,14 @@
      <rect>
       <x>80</x>
       <y>460</y>
-      <width>41</width>
+      <width>51</width>
       <height>16</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">QLabel{color:#f00}</string>
@@ -147,9 +157,14 @@
      <rect>
       <x>20</x>
       <y>460</y>
-      <width>41</width>
+      <width>51</width>
       <height>16</height>
      </rect>
+    </property>
+    <property name="font">
+     <font>
+      <pointsize>12</pointsize>
+     </font>
     </property>
     <property name="styleSheet">
      <string notr="true">QLabel{color:#f00}</string>
@@ -185,9 +200,9 @@
    <widget class="QLabel" name="turn_player_name">
     <property name="geometry">
      <rect>
-      <x>660</x>
+      <x>610</x>
       <y>460</y>
-      <width>141</width>
+      <width>191</width>
       <height>21</height>
      </rect>
     </property>

@@ -15,6 +15,7 @@ class NetworkHandler(QThread):
     init_card = Signal(list)
     your_turn = Signal(bool)
     gameover = Signal(str)
+    change_turn = Signal(str)
     response_playable = Signal(list)
 
     def __init__(self, socket: socket.socket):
@@ -45,6 +46,9 @@ class NetworkHandler(QThread):
                 case Package.ResValid():
                     replies = package.replies
                     self.response_playable.emit(replies)
+                case Package.ChangeTurn():
+                    name = package.name
+                    self.change_turn.emit(name)
                 case _:
                     raise NotImplementedError
 
