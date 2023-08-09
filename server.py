@@ -5,10 +5,7 @@ import pickle
 from game import *
 import threading
 import time
-import debugpy
 from ConnectionLogger import ConnectionLogger
-import logging
-from typing import Literal
 
 
 class ServerHandler(socketserver.BaseRequestHandler):
@@ -16,6 +13,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
     game_core = TableClassic()
     end_players = []
     logger = ConnectionLogger('server')
+    used_name = set()
 
     def sendPackage(self, client:socket.socket, package):
         #print(f'send package: {package}')
@@ -44,20 +42,6 @@ class ServerHandler(socketserver.BaseRequestHandler):
                 self.sendPackage(client, Package.YourTurn(self.game_core.players[i].lastplayed))
                 current_turn_index = i
                 break
-        
-        in_game_count = 0
-        for player in self.game_core.players:
-            if player.in_game:
-                in_game_count += 1
-
-        if in_game_count <= 1:
-            win_player_name = self.game_core.players[self.end_players[0]].name
-            for client, i in self.clients.items():
-                if i == self.end_players[0]:
-                    package = Package.GameOver('你')
-                else:
-                    package = Package.GameOver(win_player_name)
-                self.sendPackage(client, package)
 
         for client, i in self.clients.items():
             if i != current_turn_index:
@@ -89,6 +73,18 @@ class ServerHandler(socketserver.BaseRequestHandler):
                 self.sendPackage(client, package)
 
         self.game_core.turn_forward(hand is not None)
+
+        # game end
+        if self.game_core.game_playing is False:
+            win_player_name = self.game_core.players[self.end_players[0]].name
+            for client, i in self.clients.items():
+                if i == self.end_players[0]:
+                    package = Package.GameOver('你')
+                else:
+                    package = Package.GameOver(win_player_name)
+                self.sendPackage(client, package)
+            return
+
         self.notifyNextTurnPlayer()
 
         if len(self.game_core.players[player_index].cards) == 0:
@@ -114,7 +110,20 @@ class ServerHandler(socketserver.BaseRequestHandler):
             results.append((hand, valid, reason))
         self.sendPackage(self.request, Package.ResValid(results))
 
+    def closeConnection(self, reason:str):
+        self.logger.log('disconnect', self.request, reason)
+        del self.game_core.players[self.clients[self.request]]
+        del self.clients[self.request]
+        
+        self.updatePlayer()
+        self.request.shutdown(socket.SHUT_RDWR)
+        self.request.close()
+
     def initPlayerName(self, name:str):
+        if name in self.used_name:
+            self.closeConnection(f'"{name}" is a collision name')
+            return
+        self.used_name.add(name)
         index = self.clients[self.request]
         self.game_core.players[index].name = name
 
@@ -123,38 +132,34 @@ class ServerHandler(socketserver.BaseRequestHandler):
             self.startGame() 
             
     def handle(self):
-        debugpy.debug_this_thread()
         self.logger.log('connect', self.request, '')
         accept = self.game_core.join(Player())
-        if not accept:
-            self.request.shutdown(socket.SHUT_RDWR)
-            self.request.close()
-            return
         
         self.clients[self.request] = len(self.clients)  
         player_index = self.clients[self.request]
 
-        while True:
+        if not accept:
+            self.closeConnection('player not accept')
+            return
+        while self.request.fileno() != -1:
             # self.request is the TCP socket connected to the client
             try:
                 self.data = self.request.recv(1024)
                 if not self.data:
+                    self.closeConnection('player disconnect')
                     break
-            except ConnectionResetError:
+            except (ConnectionResetError, OSError):
+                self.closeConnection('player disconnect')
                 break
+
             package = pickle.loads(self.data)
             self.logger.log('recv', self.request, str(package))
-            #print(f'recv {package} from {self.client_address[0]}:{self.client_address[1]}')
             
             match package:
                 case Package.PlayCard(): self.playHand(package.hand, player_index)
                 case Package.ChkValid(): self.evaluateHands(package.hands)
                 case Package.SendName(): self.initPlayerName(package.name)
                 case _:                  raise NotImplementedError
-
-        #print(f'client {self.client_address[0]}:{self.client_address[1]} disconnect')
-        self.logger.log('disconnect', self.request, '')
-        del self.clients[self.request]
 
 def startServer(host, port):
     server = socketserver.ThreadingTCPServer((host, port), ServerHandler)

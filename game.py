@@ -250,7 +250,7 @@ class Player:
     """
     def __init__(self, name = 'None') -> None:
         self.name = name
-        self.cards = []
+        self.cards:list[Player] = []
         self.selected_cards = []
         self.lastplayed = False
         self.his_turn = False

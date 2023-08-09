@@ -109,7 +109,7 @@ class CardListModel(QAbstractListModel):
         return None
 
 class HandChooser(QObject):
-    sendPackage = Signal()
+    sendPackage = Signal(Package.Package)
 
     def __init__(self, ui: Ui_MainWindow, sock: socket.socket):
         super().__init__()
@@ -134,6 +134,8 @@ class HandChooser(QObject):
         self.is_choosing_eliminate = False
 
         self.can_eliminate_index = None
+
+        self.possible_types = None
     
     
     @Slot(QModelIndex)
@@ -217,7 +219,17 @@ class HandChooser(QObject):
         possible_types = evaluate_cards(cards)
         #print(possible_types)
 
-        self.sendPackage.emit(Package.ChkValid(possible_types))
+        if possible_types == self.possible_types:
+            return
+
+        # update directly if no card choose
+        if len(possible_types) == 0:
+            self.data_model = CardListModel([])
+            self.listView.setModel(self.data_model)
+        else:
+            self.sendPackage.emit(Package.ChkValid(possible_types))
+
+        self.possible_types = possible_types
 
         self.ui.eliminate.hide()
 

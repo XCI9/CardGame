@@ -14,7 +14,6 @@ import socket
 import pickle
 import os
 from ConnectionLogger import ConnectionLogger
-from typing import Type
 
 """
 The frame of this application
@@ -39,7 +38,8 @@ class ServerClientDialog(QDialog):
 
         #default name use current user name
         self.ui.name.setText(os.getlogin())
-        self.ui.player.hide()
+        self.ui.information.setText('')
+        self.ui.information.hide()
 
         self.ui.client.toggled.connect(self.modeChange)
 
@@ -49,7 +49,7 @@ class ServerClientDialog(QDialog):
         player_str = f'玩家({len(players)}/3):'
         for player in players:
             player_str += f' {player},'
-        self.ui.player.setText(player_str[:-1])
+        self.ui.information.setText(player_str[:-1])
 
         if len(players) == 3: # start game
             self.accept()
@@ -57,12 +57,27 @@ class ServerClientDialog(QDialog):
     def submit(self):       
         self.ui.submit.setText('等待玩家中')
         self.ui.submit.setEnabled(False)
-        self.ui.player.show()
+        self.ui.name.setEnabled(False)
+        self.ui.ip.setEnabled(False)
+        self.ui.port.setEnabled(False)
+        self.ui.information.setText('')
+        self.ui.information.setStyleSheet('')
 
         if self.ui.client.isChecked():
             self.make_connection.emit("client", self.ui.ip.text(), int(self.ui.port.text()))
         else:
             self.make_connection.emit("server", "127.0.0.1", int(self.ui.port.text()))
+
+        self.ui.information.show()
+
+    def reinputInfo(self, error_msg: str):
+        self.ui.submit.setText('OK')
+        self.ui.submit.setEnabled(True)
+        self.ui.name.setEnabled(True)
+        self.ui.ip.setEnabled(self.ui.client.isChecked())
+        self.ui.port.setEnabled(True)
+        self.ui.information.setText(error_msg)
+        self.ui.information.setStyleSheet('QLabel{color:#f00}')
 
     def modeChange(self):
         if self.ui.client.isChecked():
@@ -71,6 +86,7 @@ class ServerClientDialog(QDialog):
             self.ui.ip.setEnabled(False)
 
 class MainWindow(QMainWindow):
+    cannotMakeConnection = Signal(str)
     def __init__(self, parent=None):
         super().__init__(parent)
         self.ui = Ui_MainWindow()
@@ -97,6 +113,7 @@ class MainWindow(QMainWindow):
         self.ui.pass_.clicked.connect(self.pass_)
 
         self.dialog = ServerClientDialog()
+        self.cannotMakeConnection.connect(self.dialog.reinputInfo)
         self.dialog.make_connection.connect(self.makeConnection)
         result = self.dialog.exec()
 
@@ -126,10 +143,18 @@ class MainWindow(QMainWindow):
     @Slot(str, str, int)
     def makeConnection(self, type:str, ip:str, port: int):
         if type == 'server':
-            startServer("0.0.0.0", port)
-            self.socket.connect(("127.0.0.1", port))
-        else:
+            try:
+                startServer("0.0.0.0", port)
+            except OSError as e:
+                print(e)
+                self.cannotMakeConnection.emit('無法啟動伺服器!')
+                return
+        try:
             self.socket.connect((ip, port))
+        except ConnectionRefusedError:
+            self.cannotMakeConnection.emit('無法與伺服器建立連線!')
+            return
+        
         self.logger.log('connect', self.socket, '')
 
         self.network_handler = NetworkHandler(self.socket, self.logger)
@@ -141,9 +166,16 @@ class MainWindow(QMainWindow):
         self.network_handler.gameover.connect(self.gameover)
         self.network_handler.update_cards_count.connect(self.updateCardCount)
         self.network_handler.update_players.connect(self.dialog.updatePlayers)
+        self.network_handler.connection_lose.connect(self.connectionLose)
         self.network_handler.start()
 
         self.socket.send(pickle.dumps(Package.SendName(self.dialog.ui.name.text())))
+
+    def connectionLose(self):
+        if self.dialog.isVisible():
+            self.dialog.reinputInfo('伺服器關閉了連線!')
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.handChooser.socket = self.socket
 
     @Slot(str)
     def gameover(self, winner: str):
@@ -235,9 +267,18 @@ class MainWindow(QMainWindow):
                 display_str += f'{name}-{count} '
         self.ui.card_count.setText(display_str)
 
+    def terminate(self):
+        self.socket.shutdown(socket.SHUT_RDWR)
+        self.network_handler.wait()
+
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     widget = MainWindow()
     if widget.run:
         widget.show()
-        sys.exit(app.exec())
+        exit_code = app.exec()
+    else:
+        exit_code = 0
+
+    widget.terminate()
+    sys.exit(exit_code)

@@ -82,6 +82,9 @@
    </property>
   </widget>
   <widget class="QLineEdit" name="ip">
+   <property name="enabled">
+    <bool>false</bool>
+   </property>
    <property name="geometry">
     <rect>
      <x>210</x>
@@ -133,7 +136,7 @@
     <string>name</string>
    </property>
   </widget>
-  <widget class="QLabel" name="player">
+  <widget class="QLabel" name="information">
    <property name="geometry">
     <rect>
      <x>20</x>
