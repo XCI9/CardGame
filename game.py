@@ -233,8 +233,6 @@ class Player:
     ----------
     name : string
         The name of player.
-    table : Table
-        The table this player joined.
     cards : list[int]
         The cards player has.
     selected_cards : list[int]
@@ -288,6 +286,8 @@ class TableClassic(Table):
         the players that joined the game
     turn : int
         n when it is n-th turn. 0 when game not started.
+    game_playing : bool
+        True when a game is playing on the table.
     previous_hand : Hand
         The previous played hand, defalut is: 
         Hand(card=(), rank='None', value=-1, suit=-1)
@@ -318,6 +318,7 @@ class TableClassic(Table):
         self.rule9 = False
         self.rule19 = False
         self.rule29 = False
+        self.game_playing = False
     def __repr__(self) -> str:
         string = ( "A table with cards:\n"
                  + str(self.cards) + '\n' 
@@ -334,26 +335,37 @@ class TableClassic(Table):
             return False
         self.players.append(player)
         return True
-
+    
     def start(self) -> bool:
-        "Start game."
-        if len(self.players) != 3:
+        "Start a new game. Return False for unable to start."
+        if len(self.players) not in (2, 3):
             return False
-        # decide dealer
-        dealer_ind = random.randint(0, 2)
-        self.players[dealer_ind].cards.append(1)
-        self.players[dealer_ind].lastplayed = True
-        self.players[dealer_ind].his_turn = True
+        # initialize
+        self.game_playing = True
+        for player in self.players:
+            player.cards = []
+            player.selected_cards = []
+            player.lastplayed = False
+            player.his_turn = False
+            player.in_game = True
         # deal
         deck = list(range(2, 32))
-
         random.shuffle(deck)
-        self.players[0].cards += deck[0:10]
-        self.players[1].cards += deck[10:20]
-        self.players[2].cards += deck[20:30]
-        self.players[0].in_game = True
-        self.players[1].in_game = True
-        self.players[2].in_game = True
+        if len(self.players) == 3:
+            dealer_ind = random.randint(0, 2)
+            self.players[dealer_ind].cards.append(1)
+            self.players[0].cards += deck[0:10]
+            self.players[1].cards += deck[10:20]
+            self.players[2].cards += deck[20:30]
+            # deal
+        if len(self.players) == 2:
+            dealer_ind = random.randint(0, 1)
+            self.players[dealer_ind].cards.append(1)
+            self.players[0].cards += deck[0:12]
+            self.players[1].cards += deck[12:24]
+        self.players[dealer_ind].lastplayed = True
+        self.players[dealer_ind].his_turn = True
+        # give token to delaer
         self._token = dealer_ind
         self.turn = 1
         return True
@@ -421,9 +433,12 @@ class TableClassic(Table):
         """
         active_player = self.get_player()
         next_active_player = self.get_player(+1)
-        # check if active player wins
+        # check if active player wins and whether game ends
         if len(active_player.cards) == 0:
             active_player.in_game = False
+        if sum([1 if player.in_game else 0 for player in self.players]) == 1:
+            self.game_playing = False
+            return
         # turn forward to next player
         if played_hand:
             for player in self.players:
