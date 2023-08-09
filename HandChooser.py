@@ -218,12 +218,13 @@ class HandChooser(QObject):
 
         possible_types = evaluate_cards(cards)
         #print(possible_types)
+        self.ui.eliminate.hide()
 
         if possible_types == self.possible_types:
             return
 
-        # update directly if no card choose
-        if len(possible_types) == 0:
+        # update directly if there is impossible to have any card type
+        if len(possible_types) == 0 or len(possible_types) >= 4:
             self.data_model = CardListModel([])
             self.listView.setModel(self.data_model)
         else:
@@ -231,7 +232,7 @@ class HandChooser(QObject):
 
         self.possible_types = possible_types
 
-        self.ui.eliminate.hide()
+        
 
     def updatePlayableCard(self, replies: list[tuple[Hand, bool, str]]):
         self.cardtypes: list[CardTypeBlock] = []
