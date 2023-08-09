@@ -13,6 +13,8 @@ from package import Package
 import socket
 import pickle
 import os
+from ConnectionLogger import ConnectionLogger
+from typing import Type
 
 """
 The frame of this application
@@ -83,9 +85,12 @@ class MainWindow(QMainWindow):
         self.ui.canva.horizontalScrollBar().blockSignals(True)
         self.ui.canva.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 
+        self.logger = ConnectionLogger('client')
+
         self.selected_index = None
 
         self.handChooser = HandChooser(self.ui, self.socket)
+        self.handChooser.sendPackage.connect(self.sendPackage)
         self.scene.chooseCardsChanged.connect(self.handChooser.changeChooseCards)
         self.ui.submit.clicked.connect(self.playCard)
         self.ui.eliminate.clicked.connect(self.chooseEliminate)
@@ -95,9 +100,9 @@ class MainWindow(QMainWindow):
         self.dialog.make_connection.connect(self.makeConnection)
         result = self.dialog.exec()
 
+        self.run = True
         if result != QDialog.Accepted:
-            sys.exit(-1)
-
+            self.run = False
 
         self.name = self.dialog.ui.name.text()
         self.setWindowTitle(f'籤筒-User {self.name}')
@@ -112,6 +117,12 @@ class MainWindow(QMainWindow):
         self.ui.eliminate.hide()
         self.ui.gameover_msg.hide()
 
+    @Slot(Package.Package)
+    def sendPackage(self, package:Package.Package):
+        package_byte = pickle.dumps(package)
+        self.socket.send(package_byte)
+        self.logger.log('send', self.socket, str(package))
+
     @Slot(str, str, int)
     def makeConnection(self, type:str, ip:str, port: int):
         if type == 'server':
@@ -119,8 +130,9 @@ class MainWindow(QMainWindow):
             self.socket.connect(("127.0.0.1", port))
         else:
             self.socket.connect((ip, port))
+        self.logger.log('connect', self.socket, '')
 
-        self.network_handler = NetworkHandler(self.socket)
+        self.network_handler = NetworkHandler(self.socket, self.logger)
         self.network_handler.response_playable.connect(self.handChooser.updatePlayableCard)
         self.network_handler.update_table.connect(self.updateTable)
         self.network_handler.init_card.connect(self.scene.initCard)
@@ -150,8 +162,7 @@ class MainWindow(QMainWindow):
     def pass_(self):
         self.ui.cannot_play_msg.hide()
 
-        package = pickle.dumps(Package.PlayCard(None))
-        self.socket.send(package)
+        self.sendPackage(Package.PlayCard(None))
 
         self.ui.submit.setEnabled(False)
         self.ui.pass_.setEnabled(False)
@@ -175,8 +186,7 @@ class MainWindow(QMainWindow):
         self.scene.removeCards(hand.card)
 
         # put played card onto table
-        package = pickle.dumps(Package.PlayCard(hand))
-        self.socket.send(package)
+        self.sendPackage(Package.PlayCard(hand))
         #self.board.play_hand(hand)
 
         self.handChooser.clearChoose()
@@ -228,5 +238,6 @@ class MainWindow(QMainWindow):
 if __name__ == '__main__':
     app = QApplication(sys.argv)
     widget = MainWindow()
-    widget.show()
-    sys.exit(app.exec())
+    if widget.run:
+        widget.show()
+        sys.exit(app.exec())

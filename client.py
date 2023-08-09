@@ -3,6 +3,7 @@ from game import *
 import pickle
 from package import Package
 from PySide6.QtCore import Qt, Signal, QThread
+from ConnectionLogger import ConnectionLogger
 
 HOST = "127.0.0.1"
 PORT = 8888
@@ -18,9 +19,10 @@ class NetworkHandler(QThread):
     update_cards_count = Signal(list)
     update_players = Signal(list)
 
-    def __init__(self, socket: socket.socket):
+    def __init__(self, socket: socket.socket, logger: ConnectionLogger):
         super().__init__()
         self.socket = socket
+        self.logger = logger
 
     def run(self):
         while True:
@@ -28,7 +30,7 @@ class NetworkHandler(QThread):
             if not data:
                 break
             package = pickle.loads(data)
-            print(f'recv package: {package}')
+            self.logger.log('recv', self.socket, str(package))
 
             match package:
                 case Package.PrevHand():   self.update_table.emit(package.hand)

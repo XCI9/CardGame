@@ -1,6 +1,6 @@
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QAbstractItemView, QStyledItemDelegate, QVBoxLayout, QListView, QHBoxLayout, QStyle
-from PySide6.QtCore import Qt, Signal, QAbstractListModel, QModelIndex, QSize, Slot, QPoint
+from PySide6.QtCore import Qt, Signal, QAbstractListModel, QModelIndex, QSize, Slot, QPoint, QObject
 from PySide6.QtGui import QStandardItem, QStandardItemModel, QPixmap, QRegion, QPainter
 from mainwindow_ui import Ui_MainWindow
 
@@ -9,7 +9,7 @@ from cardtype_ui import Ui_Form as CardTypeForm
 from canva import PrivateCardPlacer
 from game import *
 import socket
-import pickle
+from typing import Type
 
 class CardTypeBlock(QWidget):
     def __init__(self, playable = True, hand:Hand = None, need_erased_1 = False, parent=None):
@@ -108,10 +108,11 @@ class CardListModel(QAbstractListModel):
 
         return None
 
-class HandChooser:
-    enableEliminate = Signal()
-    disableElimate = Signal()
+class HandChooser(QObject):
+    sendPackage = Signal()
+
     def __init__(self, ui: Ui_MainWindow, sock: socket.socket):
+        super().__init__()
         self.ui = ui
         self.listView = ui.cardChooser
         self.socket = sock
@@ -216,23 +217,8 @@ class HandChooser:
         possible_types = evaluate_cards(cards)
         #print(possible_types)
 
-        self.socket.send(pickle.dumps(Package.ChkValid(possible_types)))
+        self.sendPackage.emit(Package.ChkValid(possible_types))
 
-        #self.cardtypes = []
-        #for possible_type in possible_types:
-        #    #playable, not_playable_reason = self.board.is_playable_hand(possible_type)
-        #    playable, not_playable_reason = self.socket.send(Package.ChkValid(possible_type))
-        #    #playable = False
-#
-        #    cardtype = CardTypeBlock(playable, possible_type)
-        #    if not playable:
-        #        cardtype.setStyleSheet('QLabel{color:#999}')
-        #        cardtype.ui.cannot_play_reason.setText(not_playable_reason)
-        #        cardtype.ui.cannot_play_reason.show()
-        #    self.cardtypes.append(cardtype)
-#
-        #self.data_model = CardListModel(self.cardtypes)  # Example data
-        #self.listView.setModel(self.data_model)
         self.ui.eliminate.hide()
 
     def updatePlayableCard(self, replies: list[tuple[Hand, bool, str]]):

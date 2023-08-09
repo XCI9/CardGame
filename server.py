@@ -6,24 +6,22 @@ from game import *
 import threading
 import time
 import debugpy
+from ConnectionLogger import ConnectionLogger
+import logging
+from typing import Literal
 
 
 class ServerHandler(socketserver.BaseRequestHandler):
     clients:dict[socket.socket, int] = {}
     game_core = TableClassic()
     end_players = []
-    """
-    The RequestHandler class for our server.
-    It is instantiated once per connection to the server, and must
-    override the handle() method to implement communication to the
-    client.
-    """
+    logger = ConnectionLogger('server')
 
-    @staticmethod
-    def sendPackage(client:socket.socket, package):
-        print(f'send package: {package}')
-        package = pickle.dumps(package)
-        client.send(package)
+    def sendPackage(self, client:socket.socket, package):
+        #print(f'send package: {package}')
+        self.logger.log('send', client, str(package))
+        package_byte = pickle.dumps(package)
+        client.send(package_byte)
 
     def startGame(self):
         success = self.game_core.start()
@@ -43,7 +41,6 @@ class ServerHandler(socketserver.BaseRequestHandler):
         current_turn_index = -1
         for client, i in self.clients.items(): 
             if self.game_core.players[i].his_turn:
-                print(f'turn {self.game_core.players[i].his_turn}')
                 self.sendPackage(client, Package.YourTurn(self.game_core.players[i].lastplayed))
                 current_turn_index = i
                 break
@@ -84,7 +81,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
             if hand.erased_card is not None:
                 self.game_core.erase(hand.erased_card)
                 self.game_core.players[player_index].cards.remove(hand.erased_card)
-                print(self.game_core.players[player_index].cards)
+                #print(self.game_core.players[player_index].cards)
 
             # update table for all player
             package = Package.PrevHand(hand)
@@ -105,7 +102,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
         for player in self.game_core.players:
             players.append(player.name)
 
-        print(players)
+        #print(players)
         package = Package.GetPlayer(players)
         for client, i in self.clients.items():
             self.sendPackage(client, package)  
@@ -127,7 +124,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
             
     def handle(self):
         debugpy.debug_this_thread()
-        print(f'client {self.client_address[0]}:{self.client_address[1]} connect')
+        self.logger.log('connect', self.request, '')
         accept = self.game_core.join(Player())
         if not accept:
             self.request.shutdown(socket.SHUT_RDWR)
@@ -139,11 +136,15 @@ class ServerHandler(socketserver.BaseRequestHandler):
 
         while True:
             # self.request is the TCP socket connected to the client
-            self.data = self.request.recv(1024)
-            if not self.data:
+            try:
+                self.data = self.request.recv(1024)
+                if not self.data:
+                    break
+            except ConnectionResetError:
                 break
             package = pickle.loads(self.data)
-            print(f'recv {package} from {self.client_address[0]}:{self.client_address[1]}')
+            self.logger.log('recv', self.request, str(package))
+            #print(f'recv {package} from {self.client_address[0]}:{self.client_address[1]}')
             
             match package:
                 case Package.PlayCard(): self.playHand(package.hand, player_index)
@@ -151,7 +152,8 @@ class ServerHandler(socketserver.BaseRequestHandler):
                 case Package.SendName(): self.initPlayerName(package.name)
                 case _:                  raise NotImplementedError
 
-        print(f'client {self.client_address[0]}:{self.client_address[1]} disconnect')
+        #print(f'client {self.client_address[0]}:{self.client_address[1]} disconnect')
+        self.logger.log('disconnect', self.request, '')
         del self.clients[self.request]
 
 def startServer(host, port):
