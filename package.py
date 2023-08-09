@@ -49,3 +49,7 @@ class Package:
     @dataclass(init=True)
     class GetPlayer(Package):
         players: list[str]
+
+    @dataclass(init=True)
+    class AgainChk(Package):
+        agree: bool

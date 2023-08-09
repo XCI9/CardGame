@@ -3,7 +3,8 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QDialo
 from PySide6.QtCore import Qt, Signal, QAbstractListModel, QModelIndex, QSize, Slot, QTimer
 from PySide6.QtGui import QStandardItem, QStandardItemModel, QPixmap, QRegion, QPainter, QIntValidator
 from mainwindow_ui import Ui_MainWindow
-from ServerClientDialog_ui import Ui_Dialog
+from ServerClientDialog_ui import Ui_Dialog as Ui_ServerClientDialog
+from PlayAgainDialog_ui import Ui_Dialog as Ui_PlayAgainDialog
 from canva import Canva
 from game import *
 from HandChooser import HandChooser, CardTypeBlock
@@ -27,10 +28,8 @@ class ServerClientDialog(QDialog):
     make_connection = Signal(str,str,int)
     def __init__(self, parent = None):
         super().__init__(parent)
-        self.ui = Ui_Dialog()
+        self.ui = Ui_ServerClientDialog()
         self.ui.setupUi(self)
-
-        self.setWindowTitle('籤筒啟動器')
 
         only_int = QIntValidator()
         only_int.setRange(0, 65536)
@@ -85,6 +84,22 @@ class ServerClientDialog(QDialog):
         else:
             self.ui.ip.setEnabled(False)
 
+class PlayAgainDialog(QDialog):
+    play_again = Signal()
+    def __init__(self, parent = None):
+        super().__init__(parent)
+        self.ui = Ui_PlayAgainDialog()
+        self.ui.setupUi(self)
+
+        self.ui.play_again.clicked.connect(self.playAgain)
+        self.ui.exit.clicked.connect(self.reject)
+
+    def playAgain(self):
+        self.ui.play_again.setEnabled(False)
+
+        self.ui.play_again.setText('等待其餘玩家')
+        self.play_again.emit()
+
 class MainWindow(QMainWindow):
     cannotMakeConnection = Signal(str)
     def __init__(self, parent=None):
@@ -116,6 +131,9 @@ class MainWindow(QMainWindow):
         self.cannotMakeConnection.connect(self.dialog.reinputInfo)
         self.dialog.make_connection.connect(self.makeConnection)
         result = self.dialog.exec()
+
+        self.gameover_dialog = PlayAgainDialog()
+        self.gameover_dialog.play_again.connect(lambda: self.sendPackage(Package.AgainChk(True)))
 
         self.run = True
         if result != QDialog.Accepted:
@@ -160,7 +178,7 @@ class MainWindow(QMainWindow):
         self.network_handler = NetworkHandler(self.socket, self.logger)
         self.network_handler.response_playable.connect(self.handChooser.updatePlayableCard)
         self.network_handler.update_table.connect(self.updateTable)
-        self.network_handler.init_card.connect(self.scene.initCard)
+        self.network_handler.init_card.connect(self.initCard)
         self.network_handler.your_turn.connect(self.setMyTurn)
         self.network_handler.change_turn.connect(self.changeTurnName)
         self.network_handler.gameover.connect(self.gameover)
@@ -171,16 +189,37 @@ class MainWindow(QMainWindow):
 
         self.socket.send(pickle.dumps(Package.SendName(self.dialog.ui.name.text())))
 
+    @Slot(list)
+    def initCard(self, cards):
+        if self.gameover_dialog.isVisible():
+            self.gameover_dialog.accept()
+        self.scene.resetTable()
+        self.scene.initCard(cards)
+
     def connectionLose(self):
         if self.dialog.isVisible():
             self.dialog.reinputInfo('伺服器關閉了連線!')
+        else:
+            if self.gameover_dialog.isVisible():
+                self.gameover_dialog.close()
+            self.close()
+            return
+
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.handChooser.socket = self.socket
 
     @Slot(str)
     def gameover(self, winner: str):
-        self.ui.gameover_msg.setText(f'遊戲結束! {winner}贏了!')
-        self.ui.gameover_msg.show()
+        #self.ui.gameover_msg.setText(f'遊戲結束! {winner}贏了!')
+        #self.ui.gameover_msg.show()
+
+        self.gameover_dialog.ui.winner.setText(f'遊戲結束! {winner}贏了!')
+        self.gameover_dialog.ui.play_again.setEnabled(True)
+        self.gameover_dialog.ui.play_again.setText('再來一場')
+        result = self.gameover_dialog.exec()
+
+        if result == QDialog.Rejected:
+            self.close()
 
     @Slot(str)
     def changeTurnName(self, name:str):
@@ -268,7 +307,8 @@ class MainWindow(QMainWindow):
         self.ui.card_count.setText(display_str)
 
     def terminate(self):
-        self.socket.shutdown(socket.SHUT_RDWR)
+        if self.socket.fileno() != -1:
+            self.socket.shutdown(socket.SHUT_RDWR)
         self.network_handler.wait()
 
 if __name__ == '__main__':
