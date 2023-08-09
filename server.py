@@ -42,20 +42,6 @@ class ServerHandler(socketserver.BaseRequestHandler):
                 self.sendPackage(client, Package.YourTurn(self.game_core.players[i].lastplayed))
                 current_turn_index = i
                 break
-        
-        in_game_count = 0
-        for player in self.game_core.players:
-            if player.in_game:
-                in_game_count += 1
-
-        if in_game_count <= 1:
-            win_player_name = self.game_core.players[self.end_players[0]].name
-            for client, i in self.clients.items():
-                if i == self.end_players[0]:
-                    package = Package.GameOver('你')
-                else:
-                    package = Package.GameOver(win_player_name)
-                self.sendPackage(client, package)
 
         for client, i in self.clients.items():
             if i != current_turn_index:
@@ -87,6 +73,18 @@ class ServerHandler(socketserver.BaseRequestHandler):
                 self.sendPackage(client, package)
 
         self.game_core.turn_forward(hand is not None)
+
+        # game end
+        if self.game_core.game_playing is False:
+            win_player_name = self.game_core.players[self.end_players[0]].name
+            for client, i in self.clients.items():
+                if i == self.end_players[0]:
+                    package = Package.GameOver('你')
+                else:
+                    package = Package.GameOver(win_player_name)
+                self.sendPackage(client, package)
+            return
+
         self.notifyNextTurnPlayer()
 
         if len(self.game_core.players[player_index].cards) == 0:
@@ -156,15 +154,12 @@ class ServerHandler(socketserver.BaseRequestHandler):
 
             package = pickle.loads(self.data)
             self.logger.log('recv', self.request, str(package))
-            #print(f'recv {package} from {self.client_address[0]}:{self.client_address[1]}')
             
             match package:
                 case Package.PlayCard(): self.playHand(package.hand, player_index)
                 case Package.ChkValid(): self.evaluateHands(package.hands)
                 case Package.SendName(): self.initPlayerName(package.name)
                 case _:                  raise NotImplementedError
-
-        #print(f'client {self.client_address[0]}:{self.client_address[1]} disconnect')
 
 def startServer(host, port):
     server = socketserver.ThreadingTCPServer((host, port), ServerHandler)

@@ -14,7 +14,6 @@ import socket
 import pickle
 import os
 from ConnectionLogger import ConnectionLogger
-from typing import Type
 
 """
 The frame of this application
