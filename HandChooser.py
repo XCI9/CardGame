@@ -1,7 +1,7 @@
 import sys
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QAbstractItemView, QStyledItemDelegate, QVBoxLayout, QListView, QHBoxLayout, QStyle
-from PySide6.QtCore import Qt, Signal, QAbstractListModel, QModelIndex, QSize, Slot, QPoint, QObject
-from PySide6.QtGui import QStandardItem, QStandardItemModel, QPixmap, QRegion, QPainter
+from PySide6.QtWidgets import QWidget, QStyledItemDelegate, QListView, QStyle
+from PySide6.QtCore import Qt, Signal, QAbstractListModel, QModelIndex, QSize, Slot, QObject
+from PySide6.QtGui import QRegion
 from mainwindow_ui import Ui_MainWindow
 
 from package import Package
@@ -9,7 +9,6 @@ from cardtype_ui import Ui_Form as CardTypeForm
 from canva import PrivateCardPlacer
 from game import *
 import socket
-from typing import Type
 
 class CardTypeBlock(QWidget):
     def __init__(self, playable = True, hand:Hand = None, need_erased_1 = False, parent=None):
@@ -59,7 +58,6 @@ class CardTypeBlock(QWidget):
             if self.hand.erased_card is not None:
                 self.ui.eliminate.setText(f'消除{self.hand.erased_card}')
 
-
 class CardTypeDelegate(QStyledItemDelegate):
     def __init__(self, listView: QListView, parent=None):
         super().__init__(parent)
@@ -75,14 +73,6 @@ class CardTypeDelegate(QStyledItemDelegate):
             if isinstance(widget, CardTypeBlock):
                 # Draw the CardTypeBlock widget onto the painter
                 widget.render(painter, option.rect.topLeft() + self.listView.pos(), QRegion())
-                #pic = QPixmap( option.rect.width(), option.rect.height() )
-                #widget.setGeometry( option.rect )
-                #offset = self._parent.mapTo(self._mainWindow, QPoint(0,0))
-                #widget.render(painter, option.rect.topLeft())
-                #widget.render(painter, option.rect, QRegion())
-                #painter.setRenderHint(QPainter.Antialiasing)  
-                #painter.setRenderHint(QPainter.TextAntialiasing)         
-                #painter.drawPixmap( option.rect, pic )
         super().paint(painter, option, index)
 
     def initStyleOption(self, option, index):

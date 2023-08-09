@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (QGraphicsScene,
                                QGraphicsItem)
 from PySide6.QtGui import QColor, QPen, QPixmap, QImage, QBrush, QFont
 from PySide6.QtCore import Qt, Signal, QEvent
-import numpy as np
 
 class CardNumber(QGraphicsTextItem):
     def __init__(self, number, parent=None):
@@ -203,8 +202,6 @@ class Canva(QGraphicsScene):
         self.block = QGraphicsRectItem(0, 0, 1, 1)
         self.addItem(self.block)
 
-        number = [i for i in range(1, 32)]
-
         self.played_card = PublicCardPlacer()
 
         self.slot = PrivateCardPlacer(11)
@@ -223,7 +220,6 @@ class Canva(QGraphicsScene):
         i = self.slot.getSlotIndexByNumber(target_card)
         self.removeItem(self.slot.slots[i])
         self.slot.slots[i] = None
-
 
     def removeCards(self, target_cards):
         for i in target_cards:

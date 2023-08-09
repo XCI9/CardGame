@@ -265,9 +265,4 @@ if __name__ == '__main__':
     port = 8888
 
     startServer(host, port)
-    input()
-    
-
-
-
-    
+    input()  

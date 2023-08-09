@@ -1,7 +1,7 @@
 import sys
-from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QDialog, QAbstractItemView, QStyledItemDelegate, QVBoxLayout, QListView, QHBoxLayout, QStyle
-from PySide6.QtCore import Qt, Signal, QAbstractListModel, QModelIndex, QSize, Slot, QTimer
-from PySide6.QtGui import QStandardItem, QStandardItemModel, QPixmap, QRegion, QPainter, QIntValidator
+from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QDialog
+from PySide6.QtCore import Qt, Signal, Slot
+from PySide6.QtGui import QIntValidator
 from mainwindow_ui import Ui_MainWindow
 from ServerClientDialog_ui import Ui_Dialog as Ui_ServerClientDialog
 from PlayAgainDialog_ui import Ui_Dialog as Ui_PlayAgainDialog
@@ -118,8 +118,6 @@ class MainWindow(QMainWindow):
 
         self.logger = ConnectionLogger('client')
 
-        self.selected_index = None
-
         self.handChooser = HandChooser(self.ui, self.socket)
         self.handChooser.sendPackage.connect(self.sendPackage)
         self.scene.chooseCardsChanged.connect(self.handChooser.changeChooseCards)
@@ -212,9 +210,6 @@ class MainWindow(QMainWindow):
 
     @Slot(str)
     def gameover(self, winner: str):
-        #self.ui.gameover_msg.setText(f'遊戲結束! {winner}贏了!')
-        #self.ui.gameover_msg.show()
-
         self.gameover_dialog.ui.winner.setText(f'遊戲結束! {winner}贏了!')
         self.gameover_dialog.ui.play_again.setEnabled(True)
         self.gameover_dialog.ui.play_again.setText('再來一場')
@@ -260,7 +255,6 @@ class MainWindow(QMainWindow):
 
         # put played card onto table
         self.sendPackage(Package.PlayCard(hand))
-        #self.board.play_hand(hand)
 
         self.handChooser.clearChoose()
         self.ui.submit.setEnabled(False)
@@ -273,8 +267,6 @@ class MainWindow(QMainWindow):
 
         if hand.erased_card is not None:
             self.scene.playCard(hand.erased_card)
-        #if card_type.eliminate_card is not None:
-        #    self.scene.playCard(card_type.eliminate_card)
 
         # update previous hand 
         if self.prev_hand is not None:
