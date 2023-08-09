@@ -13,8 +13,9 @@ ind_higher_ranking -- compaire the rank of two hands.
 
 Classes
 ----------
-Hand -- The class instance contains cards, rank, value and suit of a hand.
+Hand -- A hand object that stores cards, rank, value and suit of a hand.
 TableClassic -- A game table for player to play a game with classic game mode.
+Player -- A game player.
 """
 
 from collections import Counter
@@ -32,7 +33,7 @@ __all__ = [
 
 @dataclass(init=True)
 class Hand():
-    """The class instance contains cards, rank, value and suit of a hand."""
+    """A hand object that stores cards, rank, value and suit of a hand."""
     card: tuple
     rank: str = 'None'
     value: int = -1
@@ -227,7 +228,7 @@ class Table:
         pass
 
 class Player:
-    """A player in a table.
+    """A game player. 
 
     Instance variables
     ----------
@@ -314,7 +315,7 @@ class TableClassic(Table):
         self.players: list[Player] = []
         self.previous_hand = Hand((), 'None', -1, -1)
         self.turn = 0
-        self._token = 0
+        self._token = -1
         self.rule9 = False
         self.rule19 = False
         self.rule29 = False
