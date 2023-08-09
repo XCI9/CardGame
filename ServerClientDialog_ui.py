@@ -62,7 +62,7 @@ class Ui_Dialog(object):
     # setupUi
 
     def retranslateUi(self, Dialog):
-        Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"Dialog", None))
+        Dialog.setWindowTitle(QCoreApplication.translate("Dialog", u"\u7c64\u7b52\u555f\u52d5\u5668", None))
         self.submit.setText(QCoreApplication.translate("Dialog", u"OK", None))
         self.server.setText(QCoreApplication.translate("Dialog", u"server", None))
         self.port.setText(QCoreApplication.translate("Dialog", u"8888", None))

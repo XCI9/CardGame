@@ -229,6 +229,17 @@ class Canva(QGraphicsScene):
         for i in target_cards:
             self.removeCard(i)
 
+    def resetTable(self):
+        for i, slot in enumerate(self.slot.slots):
+            if slot is not None:
+                self.removeItem(slot)
+                self.slot.slots[i] = None
+
+        for i, slot in enumerate(self.played_card.slots):
+            if slot is not None:
+                self.removeItem(slot)
+                self.slot.slots[i] = None
+
     def mouseReleaseEvent(self, event):
         items = self.items(event.scenePos())
         for item in items:

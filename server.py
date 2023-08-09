@@ -12,6 +12,7 @@ class GameCore:
         self.core = TableClassic()
         self.winner = None
         self.names = set()
+        self.allow_start = []
 
     def start(self):
         return self.core.start()
@@ -40,11 +41,13 @@ class GameCore:
         accept = self.core.join(Player())
 
         if accept:
+            self.allow_start.append(True)
             return len(self.core.players) - 1
         return -1
     
     def leave(self, player_id: int):
         del self.core.players[player_id]
+        del self.allow_start[player_id]
 
     def playHand(self, player_id:int, hand: Hand):
         id = player_id
@@ -104,6 +107,9 @@ class GameCore:
         
         return None
 
+    def allPlayerReady(self):
+        return all(self.allow_start)
+
 
 class ServerHandler(socketserver.BaseRequestHandler):
     clients:list[socket.socket] = []
@@ -154,6 +160,13 @@ class ServerHandler(socketserver.BaseRequestHandler):
 
         self.broadcastPackage(Package.CardLeft(cards_count))
 
+    def gameover(self, winner_id: int):
+        winner = self.core.getPlayerById(winner_id)
+        self.broadcastPackageExcept(Package.GameOver(winner.name),
+                                    winner_id, Package.GameOver('你'))
+        for i in range(len(self.clients)):
+            self.core.allow_start[i] = False
+
     def playHand(self, player_id: int, hand:Hand):
         if hand is not None:
             self.core.playHand(player_id, hand)
@@ -165,10 +178,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
 
         # game end
         if winner_id is not None:
-            winner = self.core.getPlayerById(winner_id)
-            self.broadcastPackageExcept(Package.GameOver(winner.name),
-                                        winner_id, Package.GameOver('你'))
-            return
+            self.gameover(winner_id)
 
         self.notifyNextTurnPlayer()
 
@@ -198,8 +208,18 @@ class ServerHandler(socketserver.BaseRequestHandler):
             return
 
         self.updatePlayer()
-        if self.core.isPlayerFull():
+        if self.core.isPlayerFull() and self.core.allPlayerReady():
             self.startGame() 
+
+    def againCheck(self, player_id:int, reply: bool):
+        if reply is True:
+            print(self.core.allow_start, player_id)
+            self.core.allow_start[player_id] = True
+            if self.core.allPlayerReady() and self.core.isPlayerFull():
+                self.startGame()
+        else:
+            self.closeConnection(player_id, 'leave game')
+
             
     def handle(self):
         self.logger.log('connect', self.request, '')
@@ -219,6 +239,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
             except (ConnectionResetError, OSError):
                 self.closeConnection(player_id, 'player disconnect')
                 break
+            player_id = self.clients.index(self.request)
 
             package = pickle.loads(self.data)
             self.logger.log('recv', self.request, str(package))
@@ -227,6 +248,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
                 case Package.PlayCard(): self.playHand(player_id, package.hand)
                 case Package.ChkValid(): self.evaluateHands(package.hands)
                 case Package.SendName(): self.initPlayerName(player_id, package.name)
+                case Package.AgainChk(): self.againCheck(player_id, package.agree)
                 case _:                  raise NotImplementedError
 
 def startServer(host, port):
