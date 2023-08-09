@@ -49,7 +49,7 @@ class ServerClientDialog(QDialog):
             player_str += f' {player},'
         self.ui.player.setText(player_str[:-1])
 
-        if len(players) == 3:
+        if len(players) == 3: # start game
             self.accept()
 
     def submit(self):       
@@ -67,12 +67,6 @@ class ServerClientDialog(QDialog):
             self.ui.ip.setEnabled(True)
         else:
             self.ui.ip.setEnabled(False)
-
-    def getResult(self):
-        if self.ui.client.isChecked():
-            return "client", int(self.ui.port.text()), self.ui.ip.text()
-        else:
-            return "server", int(self.ui.port.text())
 
 class MainWindow(QMainWindow):
     def __init__(self, parent=None):
@@ -118,6 +112,7 @@ class MainWindow(QMainWindow):
         self.ui.eliminate.hide()
         self.ui.gameover_msg.hide()
 
+    @Slot(str, str, int)
     def makeConnection(self, type:str, ip:str, port: int):
         if type == 'server':
             startServer("0.0.0.0", port)
@@ -187,15 +182,6 @@ class MainWindow(QMainWindow):
         self.handChooser.clearChoose()
         self.ui.submit.setEnabled(False)
         self.ui.pass_.setEnabled(False)
-        
-        # update rule hint
-        #for rule, label, name in self.rule_info:
-        #    if rule is True:
-        #        label.setText(f'{name}✔')
-        #        label.setStyleSheet('QLabel{color:#22b14c}') # green
-        #    else:
-        #        label.setText(f'{name}✘')
-        #        label.setStyleSheet('QLabel{color:#f00}')
 
     @Slot(Hand)
     def updateTable(self, hand: Hand):
@@ -238,8 +224,6 @@ class MainWindow(QMainWindow):
             if name != self.name:
                 display_str += f'{name}-{count} '
         self.ui.card_count.setText(display_str)
-                
-
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

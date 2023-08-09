@@ -23,7 +23,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1020, 509)
+        MainWindow.resize(1021, 509)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.canva = QGraphicsView(self.centralwidget)
@@ -97,6 +97,7 @@ class Ui_MainWindow(object):
         self.turn_player_name.setGeometry(QRect(610, 460, 191, 21))
         self.turn_player_name.setFont(font)
         self.turn_player_name.setStyleSheet(u"")
+        self.turn_player_name.setAlignment(Qt.AlignRight|Qt.AlignTrailing|Qt.AlignVCenter)
         self.gameover_msg = QLabel(self.centralwidget)
         self.gameover_msg.setObjectName(u"gameover_msg")
         self.gameover_msg.setGeometry(QRect(10, 170, 791, 71))
@@ -109,10 +110,11 @@ class Ui_MainWindow(object):
         self.card_count.setGeometry(QRect(200, 460, 401, 21))
         self.card_count.setFont(font)
         self.card_count.setStyleSheet(u"")
+        self.card_count.setAlignment(Qt.AlignCenter)
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 1020, 22))
+        self.menubar.setGeometry(QRect(0, 0, 1021, 22))
         MainWindow.setMenuBar(self.menubar)
 
         self.retranslateUi(MainWindow)

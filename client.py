@@ -2,9 +2,7 @@ import socket
 from game import *
 import pickle
 from package import Package
-from PySide6.QtWidgets import QFileDialog, QTableWidgetItem
-from PySide6.QtGui import QImage, QPixmap
-from PySide6.QtCore import Qt, Signal, Slot, QThread, QWaitCondition, QMutex, QObject
+from PySide6.QtCore import Qt, Signal, QThread
 
 HOST = "127.0.0.1"
 PORT = 8888
@@ -30,44 +28,22 @@ class NetworkHandler(QThread):
             if not data:
                 break
             package = pickle.loads(data)
+            print(f'recv package: {package}')
 
             match package:
-                case Package.PrevHand():
-                    prev_hand = package.hand
-                    self.update_table.emit(prev_hand)
-                case Package.InitCard():
-                    cards = package.cards
-                    self.init_card.emit(cards)
-                case Package.GameOver():
-                    winner = package.winner
-                    print(f'gameover, winner:{winner}')
-                    self.gameover.emit(winner)
-                case Package.YourTurn():
-                    print('my turn')
-                    force = package.force
-                    self.your_turn.emit(force)
-                case Package.ResValid():
-                    replies = package.replies
-                    self.response_playable.emit(replies)
-                case Package.ChangeTurn():
-                    name = package.name
-                    self.change_turn.emit(name)
-                case Package.GameOver():
-                    winner = package.winner
-                    self.gameover.emit(winner)
-                case Package.CardLeft():
-                    cards_count = package.cards_count
-                    self.update_cards_count.emit(cards_count)
-                case Package.GetPlayer():
-                    players = package.players
-                    print(players)
-                    self.update_players.emit(players)
-                case _:
-                    raise NotImplementedError
+                case Package.PrevHand():   self.update_table.emit(package.hand)
+                case Package.InitCard():   self.init_card.emit(package.cards)
+                case Package.GameOver():   self.gameover.emit(package.winner)
+                case Package.YourTurn():   self.your_turn.emit(package.force)
+                case Package.ResValid():   self.response_playable.emit(package.replies)
+                case Package.ChangeTurn(): self.change_turn.emit(package.name)
+                case Package.GameOver():   self.gameover.emit(package.winner)
+                case Package.CardLeft():   self.update_cards_count.emit(package.cards_count)
+                case Package.GetPlayer():  self.update_players.emit(package.players)
+                case _:                    raise NotImplementedError
 
 
 if __name__ == '__main__':
-
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.connect((HOST, PORT))
     while True:

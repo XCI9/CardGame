@@ -37,7 +37,7 @@ class Package:
 
     @dataclass(init=True)
     class ResValid:
-        replies: list[tuple[Hand, bool, str]]
+        replies: list[tuple[Hand, bool, str]] # Hand is_valid not_valid_reason
 
     @dataclass(init=True)
     class SendName:
