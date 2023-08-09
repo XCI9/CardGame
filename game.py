@@ -22,10 +22,10 @@ from dataclasses import dataclass
 from typing import Literal
 import random
 __all__ = [
+    'Hand',
     'hand_ranking',
     'evaluate_cards',
     'ind_higher_ranking',
-    'Hand',
     'TableClassic',
     'Player'
 ]
