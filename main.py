@@ -76,9 +76,9 @@ class MainWindow(QMainWindow):
             ip = role[2]
             self.socket.connect((ip, port))
 
-        name = dialog.ui.name.text()
-        self.setWindowTitle(f'籤筒-User {name}')
-        self.socket.send(pickle.dumps(Package.SendName(name)))
+        self.name = dialog.ui.name.text()
+        self.setWindowTitle(f'籤筒-User {self.name}')
+        self.socket.send(pickle.dumps(Package.SendName(self.name)))
 
         self.scene = Canva()
         self.ui.canva.setScene(self.scene)
@@ -112,6 +112,7 @@ class MainWindow(QMainWindow):
         self.network_handler.your_turn.connect(self.setMyTurn)
         self.network_handler.change_turn.connect(self.changeTurnName)
         self.network_handler.gameover.connect(self.gameover)
+        self.network_handler.update_cards_count.connect(self.updateCardCount)
         self.network_handler.start()
 
     @Slot(str)
@@ -207,7 +208,14 @@ class MainWindow(QMainWindow):
         if not is_forced:
             self.ui.pass_.setEnabled(True)
 
-
+    @Slot(list)
+    def updateCardCount(self, cards_count:list):
+        display_str = '剩餘牌數: '
+        for name, count in cards_count:
+            if name != self.name:
+                display_str += f'{name}-{count} '
+        self.ui.card_count.setText(display_str)
+                
 
 
 if __name__ == '__main__':

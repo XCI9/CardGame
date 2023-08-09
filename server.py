@@ -29,6 +29,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
             package = pickle.dumps(Package.InitCard(cards))
             client.send(package)
         time.sleep(0.1)
+        self.updateCardCount()
         self.notifyNextTurnPlayer()
 
     def notifyNextTurnPlayer(self):
@@ -61,7 +62,16 @@ class ServerHandler(socketserver.BaseRequestHandler):
         for client, i in self.clients.items():
             if i != current_turn_index:
                 package = pickle.dumps(Package.ChangeTurn(self.game_core.players[current_turn_index].name))
-                client.send(package)          
+                client.send(package)    
+
+    def updateCardCount(self):
+        cards_count = []
+        for player in self.game_core.players:
+            cards_count.append((player.name, len(player.cards)))
+
+        package = pickle.dumps(Package.CardLeft(cards_count))
+        for client, i in self.clients.items():
+            client.send(package)        
             
     def handle(self):
         debugpy.debug_this_thread()
@@ -105,6 +115,9 @@ class ServerHandler(socketserver.BaseRequestHandler):
 
                     if len(self.game_core.players[player_index].cards) == 0:
                         self.end_players.append(player_index)
+
+                    # update card of each player
+                    self.updateCardCount()
                 case Package.ChkValid():
                     hands = package.hands
 

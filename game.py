@@ -198,8 +198,9 @@ def evaluate_cards(cards: tuple[int] | list[int],
                 rank = 'void2'
                 avaliable.append( Hand(cards, rank, value, suit) )
             ####  double  ####
-            rank = 'double'
-            avaliable.append( Hand(cards, rank, value, suit) )
+            else:
+                rank = 'double'
+                avaliable.append( Hand(cards, rank, value, suit) )
     if len(cards) == 1:
         rank = 'single'
         if len(_reprc) == 1:
