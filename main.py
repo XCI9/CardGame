@@ -127,6 +127,8 @@ class MainWindow(QMainWindow):
         self.ui.eliminate.clicked.connect(self.chooseEliminate)
         self.ui.pass_.clicked.connect(self.pass_)
 
+        self.network_handler = None
+
         self.dialog = ServerClientDialog()
         self.cannotMakeConnection.connect(self.dialog.reinputInfo)
         self.dialog.make_connection.connect(self.makeConnection)
@@ -134,7 +136,7 @@ class MainWindow(QMainWindow):
 
         self.gameover_dialog = PlayAgainDialog()
         self.gameover_dialog.play_again.connect(lambda: self.sendPackage(Package.AgainChk(True)))
-
+ 
         self.run = True
         if result != QDialog.Accepted:
             self.run = False
@@ -308,8 +310,12 @@ class MainWindow(QMainWindow):
 
     def terminate(self):
         if self.socket.fileno() != -1:
-            self.socket.shutdown(socket.SHUT_RDWR)
-        self.network_handler.wait()
+            try:
+                self.socket.shutdown(socket.SHUT_RDWR)
+            except:
+                pass
+        if self.network_handler is not None:
+            self.network_handler.wait()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)
