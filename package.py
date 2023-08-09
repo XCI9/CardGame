@@ -42,3 +42,7 @@ class Package:
     @dataclass(init=True)
     class SendName:
         name: str
+
+    @dataclass(init=True)
+    class GetPlayer:
+        players: list[str]

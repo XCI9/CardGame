@@ -71,7 +71,17 @@ class ServerHandler(socketserver.BaseRequestHandler):
 
         package = pickle.dumps(Package.CardLeft(cards_count))
         for client, i in self.clients.items():
-            client.send(package)        
+            client.send(package) 
+
+    def updatePlayer(self):
+        players = []
+        for player in self.game_core.players:
+            players.append(player.name)
+
+        print(players)
+        package = pickle.dumps(Package.GetPlayer(players))
+        for client, i in self.clients.items():
+            client.send(package)    
             
     def handle(self):
         debugpy.debug_this_thread()
@@ -132,6 +142,8 @@ class ServerHandler(socketserver.BaseRequestHandler):
                     print(name)
                     index = self.clients[self.request]
                     self.game_core.players[index].name = name
+
+                    self.updatePlayer()
                     if len(self.clients) == 3:
                         self.startGame() 
                 case _:

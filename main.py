@@ -1,6 +1,6 @@
 import sys
 from PySide6.QtWidgets import QApplication, QMainWindow, QWidget, QLabel, QDialog, QAbstractItemView, QStyledItemDelegate, QVBoxLayout, QListView, QHBoxLayout, QStyle
-from PySide6.QtCore import Qt, Signal, QAbstractListModel, QModelIndex, QSize, Slot
+from PySide6.QtCore import Qt, Signal, QAbstractListModel, QModelIndex, QSize, Slot, QTimer
 from PySide6.QtGui import QStandardItem, QStandardItemModel, QPixmap, QRegion, QPainter, QIntValidator
 from mainwindow_ui import Ui_MainWindow
 from ServerClientDialog_ui import Ui_Dialog
@@ -23,6 +23,7 @@ we'll initial the widget first and pass it to a controller to control it
 """
 
 class ServerClientDialog(QDialog):
+    make_connection = Signal(str,str,int)
     def __init__(self, parent = None):
         super().__init__(parent)
         self.ui = Ui_Dialog()
@@ -36,10 +37,30 @@ class ServerClientDialog(QDialog):
 
         #default name use current user name
         self.ui.name.setText(os.getlogin())
+        self.ui.player.hide()
 
         self.ui.client.toggled.connect(self.modeChange)
 
-        self.ui.submit.clicked.connect(self.accept)
+        self.ui.submit.clicked.connect(self.submit)
+
+    def updatePlayers(self, players: list[str]):
+        player_str = f'玩家({len(players)}/3):'
+        for player in players:
+            player_str += f' {player},'
+        self.ui.player.setText(player_str[:-1])
+
+        if len(players) == 3:
+            self.accept()
+
+    def submit(self):       
+        self.ui.submit.setText('等待玩家中')
+        self.ui.submit.setEnabled(False)
+        self.ui.player.show()
+
+        if self.ui.client.isChecked():
+            self.make_connection.emit("client", self.ui.ip.text(), int(self.ui.port.text()))
+        else:
+            self.make_connection.emit("server", "127.0.0.1", int(self.ui.port.text()))
 
     def modeChange(self):
         if self.ui.client.isChecked():
@@ -59,26 +80,7 @@ class MainWindow(QMainWindow):
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
 
-        dialog = ServerClientDialog()
-        result = dialog.exec()
-
-        if result != QDialog.Accepted:
-            sys.exit(-1)
-
-        role = dialog.getResult()
-        port = role[1]
-
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        if role[0] == 'server':
-            startServer("0.0.0.0", port)
-            self.socket.connect(("127.0.0.1", port))
-        elif role[0] == 'client':
-            ip = role[2]
-            self.socket.connect((ip, port))
-
-        self.name = dialog.ui.name.text()
-        self.setWindowTitle(f'籤筒-User {self.name}')
-        self.socket.send(pickle.dumps(Package.SendName(self.name)))
 
         self.scene = Canva()
         self.ui.canva.setScene(self.scene)
@@ -95,6 +97,17 @@ class MainWindow(QMainWindow):
         self.ui.eliminate.clicked.connect(self.chooseEliminate)
         self.ui.pass_.clicked.connect(self.pass_)
 
+        self.dialog = ServerClientDialog()
+        self.dialog.make_connection.connect(self.makeConnection)
+        result = self.dialog.exec()
+
+        if result != QDialog.Accepted:
+            sys.exit(-1)
+
+
+        self.name = self.dialog.ui.name.text()
+        self.setWindowTitle(f'籤筒-User {self.name}')
+
         self.prev_hand = None
 
         self.rule_info:list[tuple[int,QLabel, str]] = [(9, self.ui.rule9, '2壓1'),
@@ -105,6 +118,13 @@ class MainWindow(QMainWindow):
         self.ui.eliminate.hide()
         self.ui.gameover_msg.hide()
 
+    def makeConnection(self, type:str, ip:str, port: int):
+        if type == 'server':
+            startServer("0.0.0.0", port)
+            self.socket.connect(("127.0.0.1", port))
+        else:
+            self.socket.connect((ip, port))
+
         self.network_handler = NetworkHandler(self.socket)
         self.network_handler.response_playable.connect(self.handChooser.updatePlayableCard)
         self.network_handler.update_table.connect(self.updateTable)
@@ -113,7 +133,10 @@ class MainWindow(QMainWindow):
         self.network_handler.change_turn.connect(self.changeTurnName)
         self.network_handler.gameover.connect(self.gameover)
         self.network_handler.update_cards_count.connect(self.updateCardCount)
+        self.network_handler.update_players.connect(self.dialog.updatePlayers)
         self.network_handler.start()
+
+        self.socket.send(pickle.dumps(Package.SendName(self.dialog.ui.name.text())))
 
     @Slot(str)
     def gameover(self, winner: str):
