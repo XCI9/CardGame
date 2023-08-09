@@ -41,6 +41,7 @@ class Ui_Dialog(object):
         self.client.setGeometry(QRect(110, 10, 61, 20))
         self.ip = QLineEdit(Dialog)
         self.ip.setObjectName(u"ip")
+        self.ip.setEnabled(False)
         self.ip.setGeometry(QRect(210, 10, 101, 20))
         self.label_2 = QLabel(Dialog)
         self.label_2.setObjectName(u"label_2")
@@ -51,9 +52,9 @@ class Ui_Dialog(object):
         self.label_3 = QLabel(Dialog)
         self.label_3.setObjectName(u"label_3")
         self.label_3.setGeometry(QRect(20, 40, 41, 21))
-        self.player = QLabel(Dialog)
-        self.player.setObjectName(u"player")
-        self.player.setGeometry(QRect(20, 70, 211, 21))
+        self.information = QLabel(Dialog)
+        self.information.setObjectName(u"information")
+        self.information.setGeometry(QRect(20, 70, 211, 21))
 
         self.retranslateUi(Dialog)
 
@@ -71,6 +72,6 @@ class Ui_Dialog(object):
         self.label_2.setText(QCoreApplication.translate("Dialog", u"ip", None))
         self.name.setText(QCoreApplication.translate("Dialog", u"Player", None))
         self.label_3.setText(QCoreApplication.translate("Dialog", u"name", None))
-        self.player.setText(QCoreApplication.translate("Dialog", u"\u73a9\u5bb6(1/3):", None))
+        self.information.setText(QCoreApplication.translate("Dialog", u"\u73a9\u5bb6(1/3):", None))
     # retranslateUi
 

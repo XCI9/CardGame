@@ -5,10 +5,7 @@ import pickle
 from game import *
 import threading
 import time
-import debugpy
 from ConnectionLogger import ConnectionLogger
-import logging
-from typing import Literal
 
 
 class ServerHandler(socketserver.BaseRequestHandler):
@@ -16,6 +13,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
     game_core = TableClassic()
     end_players = []
     logger = ConnectionLogger('server')
+    used_name = set()
 
     def sendPackage(self, client:socket.socket, package):
         #print(f'send package: {package}')
@@ -114,7 +112,20 @@ class ServerHandler(socketserver.BaseRequestHandler):
             results.append((hand, valid, reason))
         self.sendPackage(self.request, Package.ResValid(results))
 
+    def closeConnection(self, reason:str):
+        self.logger.log('disconnect', self.request, reason)
+        del self.game_core.players[self.clients[self.request]]
+        del self.clients[self.request]
+        
+        self.updatePlayer()
+        self.request.shutdown(socket.SHUT_RDWR)
+        self.request.close()
+
     def initPlayerName(self, name:str):
+        if name in self.used_name:
+            self.closeConnection(f'"{name}" is a collision name')
+            return
+        self.used_name.add(name)
         index = self.clients[self.request]
         self.game_core.players[index].name = name
 
@@ -123,25 +134,26 @@ class ServerHandler(socketserver.BaseRequestHandler):
             self.startGame() 
             
     def handle(self):
-        debugpy.debug_this_thread()
         self.logger.log('connect', self.request, '')
         accept = self.game_core.join(Player())
-        if not accept:
-            self.request.shutdown(socket.SHUT_RDWR)
-            self.request.close()
-            return
         
         self.clients[self.request] = len(self.clients)  
         player_index = self.clients[self.request]
 
-        while True:
+        if not accept:
+            self.closeConnection('player not accept')
+            return
+        while self.request.fileno() != -1:
             # self.request is the TCP socket connected to the client
             try:
                 self.data = self.request.recv(1024)
                 if not self.data:
+                    self.closeConnection('player disconnect')
                     break
-            except ConnectionResetError:
+            except (ConnectionResetError, OSError):
+                self.closeConnection('player disconnect')
                 break
+
             package = pickle.loads(self.data)
             self.logger.log('recv', self.request, str(package))
             #print(f'recv {package} from {self.client_address[0]}:{self.client_address[1]}')
@@ -153,8 +165,6 @@ class ServerHandler(socketserver.BaseRequestHandler):
                 case _:                  raise NotImplementedError
 
         #print(f'client {self.client_address[0]}:{self.client_address[1]} disconnect')
-        self.logger.log('disconnect', self.request, '')
-        del self.clients[self.request]
 
 def startServer(host, port):
     server = socketserver.ThreadingTCPServer((host, port), ServerHandler)
