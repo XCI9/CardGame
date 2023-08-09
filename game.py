@@ -424,8 +424,6 @@ class TableClassic(Table):
         # check if active player wins
         if len(active_player.cards) == 0:
             active_player.in_game = False
-            next_active_player.lastplayed = True
-            self.empty_previous_hand()
         # turn forward to next player
         if played_hand:
             for player in self.players:
@@ -435,13 +433,19 @@ class TableClassic(Table):
         next_active_player.his_turn = True
         if next_active_player.lastplayed:
             self.empty_previous_hand()
-        # pass token to next player
+        # pass token to next player, also apply game rule that:
+        # p1 end -> p2 pass -> p3 pass -> [p2 can't pass but can play freely]
         self.turn += 1 
         holder = self._token
         next_holder = (holder + 1) % 3
         if not self.players[next_holder].in_game:
+            if self.players[next_holder].lastplayed:
+                self.empty_previous_hand()
+                self.players[next_holder].lastplayed = False
+                next_active_player.lastplayed = True
             next_holder = (next_holder + 1) % 3
         self._token = next_holder
+        
 
     def play_hand(self, newhand: Hand) -> None:
         """play a hand onto table. Update rule9's if matches."""
