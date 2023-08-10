@@ -239,6 +239,7 @@ class HandSelector(QObject):
                     cardtype.setStyleSheet('QLabel{color:#999}')
                     cardtype.ui.cannot_play_reason.setText(not_playable_reason)
                     cardtype.ui.cannot_play_reason.show()
+                    cardtype.ui.eliminate.hide()
             self.cardtypes.append(cardtype)
 
         self.data_model = CardListModel(self.cardtypes)  # Example data
