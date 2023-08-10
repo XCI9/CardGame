@@ -195,6 +195,11 @@ class MainWindow(QMainWindow):
         self.scene.resetTable()
         self.scene.initCard(cards)
 
+        # reset rule
+        for enable_rule_num, label, name in self.rule_info:
+            label.setText(f'{name}✘')
+            label.setStyleSheet('QLabel{color:#f00}')
+
     def connectionLose(self):
         if self.dialog.isVisible():
             self.dialog.reinputInfo('伺服器關閉了連線!')
