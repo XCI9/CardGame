@@ -244,6 +244,8 @@ class HandSelector(QObject):
 
         self.data_model = CardListModel(self.cardtypes)  # Example data
         self.listView.setModel(self.data_model)
+        if len(self.cardtypes) == 1:
+            self.listView.setCurrentIndex(self.data_model.index(0, 0))
             
 
     def getSelectedCard(self) -> tuple[int, CardTypeBlock]:

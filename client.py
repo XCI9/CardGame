@@ -36,7 +36,6 @@ class NetworkHandler(QThread):
             if not data:
                 break
             package = pickle.loads(data)
-            print(data)
             self.logger.log('recv', self.socket, str(package))
 
             match package:

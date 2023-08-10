@@ -242,7 +242,6 @@ class ServerHandler(socketserver.BaseRequestHandler):
                     self.closeConnection(player_id, 'player disconnect')
                     break
                 length = struct.unpack("!I", header)[0]  # Unpack the message length from network byte order
-                print(length)
                 self.data = self.request.recv(length)
 
             except (ConnectionResetError, OSError):
