@@ -16,6 +16,7 @@ import pickle
 import os
 import struct
 from logger import ConnectionLogger
+import winsound
 
 """
 The frame of this application
@@ -107,6 +108,8 @@ class MainWindow(QMainWindow):
         super().__init__(parent)
         self.ui = Ui_MainWindow()
         self.ui.setupUi(self)
+
+        self.sound_path = os.environ['WINDIR'] + "\Media\Windows Battery Critical.wav"
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
@@ -308,6 +311,7 @@ class MainWindow(QMainWindow):
     def setMyTurn(self, is_forced: bool):
         self.ui.submit.setEnabled(True)
         self.ui.turn_player_name.setText(f'目前輪到: 你')
+        winsound.PlaySound(self.sound_path, winsound.SND_ALIAS)
         self.hand_selector.refreshPlayableCard()
         if not is_forced:
             self.ui.pass_.setEnabled(True)
