@@ -112,8 +112,7 @@ def ind_higher_ranking(hand1: Hand, hand2: Hand) -> Literal[0, 1, 2]:
     if rank1 == rank2: result = 0
     return result
 
-def evaluate_cards(cards: tuple[int] | list[int],
-                   reprc_left: list[int] = []) -> list[Hand]:
+def evaluate_cards(cards: tuple[int] | list[int]) -> list[Hand]:
     """Evaluate all available hands that can be made.
 
     Argument
@@ -131,13 +130,13 @@ def evaluate_cards(cards: tuple[int] | list[int],
         A list that contains all avaliable hands.
     """
     # find representative card
-    _reprc = []
+    reprc = []
     cards = list(cards)
     for card in cards:
         if not card // 10 == 0:
-            _reprc.append(card // 10)
-        _reprc.append(card % 10)
-    _reprc.sort()
+            reprc.append(card // 10)
+        reprc.append(card % 10)
+    reprc.sort()
     cards.sort()
 
     avaliable = []
@@ -145,7 +144,7 @@ def evaluate_cards(cards: tuple[int] | list[int],
         ####  triangle  ####
         if cards[0]**2 + cards[1]**2 == cards[2]**2:
             rank = 'triangle'
-            value = sum(_reprc)
+            value = sum(reprc)
             suit = -1
             avaliable.append( Hand(cards, rank, value, suit) )
         ####  straight  #### 
@@ -158,15 +157,15 @@ def evaluate_cards(cards: tuple[int] | list[int],
             avaliable.append( Hand(cards, rank, value, suit) )
         ####  triple  ####
         dup = [(item, count) for item, count in
-               Counter(_reprc).items() if count > 2 ]
-        if not len(dup) == 0 :
+               Counter(reprc).items() if count >= 3]
+        if not len(dup) == 0:
             dup.sort()
             dup.reverse()
             value = dup[0][0]
-            _reprc.remove(value)
-            _reprc.remove(value)
-            _reprc.remove(value)
-            suit = sum(_reprc)
+            reprc.remove(value)
+            reprc.remove(value)
+            reprc.remove(value)
+            suit = sum(reprc)
             ####  rare triple  ####
             if value > 3:
                 rank = 'rare triple'
@@ -183,19 +182,19 @@ def evaluate_cards(cards: tuple[int] | list[int],
         ####  square  ####
         if cards[0]**2 == cards[1]:
             rank = 'square'
-            value = sum(_reprc)
+            value = sum(reprc)
             suit = -1
             avaliable.append( Hand(cards, rank, value, suit) )
 
         dup = [(item, count) for item, count in 
-               Counter(_reprc).items() if count > 1 ]
+               Counter(reprc).items() if count >= 2]
         if not len(dup) == 0:
             dup.sort()
             dup.reverse()
             value = dup[0][0]
-            _reprc.remove(value)
-            _reprc.remove(value)
-            suit = sum(_reprc)
+            reprc.remove(value)
+            reprc.remove(value)
+            suit = sum(reprc)
             ####  void2  ####
             if value == 0:
                 rank = 'void2'
@@ -206,17 +205,17 @@ def evaluate_cards(cards: tuple[int] | list[int],
                 avaliable.append( Hand(cards, rank, value, suit) )
     if len(cards) == 1:
         rank = 'single'
-        if len(_reprc) == 1:
-            value = _reprc[0]
+        if len(reprc) == 1:
+            value = reprc[0]
             suit = -1
             avaliable.append( Hand(cards, rank, value, suit) )
-        if len(_reprc) == 2:
-            value = _reprc[0]
-            suit = _reprc[1]
+        if len(reprc) == 2:
+            value = reprc[1]
+            suit = reprc[0]
             avaliable.append( Hand(cards, rank, value, suit) )
-            if _reprc[0] != _reprc[1]:
-                value = _reprc[1]
-                suit = _reprc[0]
+            if reprc[0] != reprc[1]:
+                value = reprc[0]
+                suit = reprc[1]
                 avaliable.append( Hand(cards, rank, value, suit) )
     for hand in avaliable:
         if (len(set(str(hand.value) + str(hand.suit))) == 1 and
@@ -260,7 +259,7 @@ class Player:
         self.in_game = False
 
     def __repr__(self) -> str:
-        string = ( 
+        string = (
             f'name : {self.name}\n'
             + f'his_turn : {self.his_turn}\n'
             + f'in_game : {self.in_game}\n'
