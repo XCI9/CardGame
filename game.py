@@ -343,6 +343,7 @@ class TableClassic(Table):
             return False
         # initialize
         self.game_playing = True
+        self.previous_hand = Hand((), 'None', -1, -1)
         for player in self.players:
             player.cards = []
             player.selected_cards = []
