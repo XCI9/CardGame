@@ -150,8 +150,8 @@ def evaluate_cards(cards: tuple[int] | list[int],
             avaliable.append( Hand(cards, rank, value, suit) )
         ####  straight  ####
         if  (cards[2] - cards[1] == 1 and cards[1] - cards[0] == 1) or\
-            (cards[2] - cards[1] == 1 and cards[2] - (cards[0] + CARDCOUNT) == 1) or\
-            ((cards[2] - CARDCOUNT) - cards[0] == 1 and cards[1] - cards[0] == 1):
+            (cards[2] - cards[1] == 1 and (cards[0] + CARDCOUNT) - cards[2] == 1) or\
+            (cards[0] - (cards[2] - CARDCOUNT) == 1 and cards[1] - cards[0] == 1):
             rank = 'straight'
             value = sum([max(int(digit) for digit in str(card)) for card in cards])
             suit = -1
