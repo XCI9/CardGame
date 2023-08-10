@@ -4,7 +4,7 @@ from package import Package
 import pickle
 from game import *
 import threading
-import time
+import struct
 from logger import ConnectionLogger
 
 class GameCore:
@@ -16,6 +16,7 @@ class GameCore:
 
     def start(self):
         """Start the game"""
+        self.winner = None
         return self.core.start()
     
     def getPlayerById(self, id) -> Player:
@@ -121,7 +122,9 @@ class ServerHandler(socketserver.BaseRequestHandler):
         #print(f'send package: {package}')
         self.logger.log('send', client, str(package))
         package_byte = pickle.dumps(package)
-        client.send(package_byte)
+        message_length = len(package_byte)
+        header = struct.pack("!I", message_length)  # "!I" indicates network byte order for an unsigned int
+        client.sendall(header + package_byte)
 
     def broadcastPackage(self, package: Package.Package):
         for client in self.clients:
@@ -145,7 +148,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
             package = Package.InitCard(self.core.getPlayerById(id).cards)
             self.sendPackage(client, package)
 
-        time.sleep(0.1)
+        #time.sleep(0.1)
         self.updateCardCount()
         self.notifyNextTurnPlayer()
 
@@ -229,14 +232,19 @@ class ServerHandler(socketserver.BaseRequestHandler):
             self.logger.log('disconnect', self.request, 'join not accept')
             return
         
+        self.request.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        
         self.clients.append(self.request)
         while self.request.fileno() != -1:
             # self.request is the TCP socket connected to the client
             try:
-                self.data = self.request.recv(1024)
-                if not self.data:
+                header = self.request.recv(4)  # Read the 4-byte header
+                if not header:
                     self.closeConnection(player_id, 'player disconnect')
                     break
+                length = struct.unpack("!I", header)[0]  # Unpack the message length from network byte order
+                self.data = self.request.recv(length)
+
             except (ConnectionResetError, OSError):
                 self.closeConnection(player_id, 'player disconnect')
                 break

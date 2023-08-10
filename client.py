@@ -4,6 +4,7 @@ import pickle
 from package import Package
 from PySide6.QtCore import Qt, Signal, QThread
 from logger import ConnectionLogger
+import struct
 
 HOST = "127.0.0.1"
 PORT = 8888
@@ -27,7 +28,11 @@ class NetworkHandler(QThread):
 
     def run(self):
         while self.socket.fileno() != -1:
-            data = self.socket.recv(1024)
+            header = self.socket.recv(4)  # Read the 4-byte header
+            if not header:
+                break
+            length = struct.unpack("!I", header)[0]  # Unpack the message length from network byte order
+            data = self.socket.recv(length)
             if not data:
                 break
             package = pickle.loads(data)
@@ -52,6 +57,7 @@ class NetworkHandler(QThread):
 
 if __name__ == '__main__':
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
     sock.connect((HOST, PORT))
     while True:
         type = int(input("Please choose type:"))
@@ -73,4 +79,4 @@ if __name__ == '__main__':
                 package = Package.ResValid(False)
 
         data = pickle.dumps(package)
-        sock.send(data)
+        sock.sendall(data)

@@ -14,6 +14,7 @@ from package import Package
 import socket
 import pickle
 import os
+import struct
 from logger import ConnectionLogger
 
 """
@@ -108,6 +109,7 @@ class MainWindow(QMainWindow):
         self.ui.setupUi(self)
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
         self.scene = Canva()
         self.ui.canva.setScene(self.scene)
@@ -154,7 +156,9 @@ class MainWindow(QMainWindow):
     @Slot(Package.Package)
     def sendPackage(self, package:Package.Package):
         package_byte = pickle.dumps(package)
-        self.socket.send(package_byte)
+        message_length = len(package_byte)
+        header = struct.pack("!I", message_length)  # "!I" indicates network byte order for an unsigned int
+        self.socket.sendall(header + package_byte)
         self.logger.log('send', self.socket, str(package))
 
     @Slot(str, str, int)
@@ -186,7 +190,7 @@ class MainWindow(QMainWindow):
         self.network_handler.connection_lose.connect(self.connectionLose)
         self.network_handler.start()
 
-        self.socket.send(pickle.dumps(Package.SendName(self.dialog.ui.name.text())))
+        self.sendPackage(Package.SendName(self.dialog.ui.name.text()))
 
     @Slot(list)
     def initCard(self, cards):
@@ -210,6 +214,7 @@ class MainWindow(QMainWindow):
             return
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
         self.hand_selector.socket = self.socket
 
     @Slot(str)
@@ -218,6 +223,10 @@ class MainWindow(QMainWindow):
         self.gameover_dialog.ui.play_again.setEnabled(True)
         self.gameover_dialog.ui.play_again.setText('再來一場')
         result = self.gameover_dialog.exec()
+
+        self.ui.submit.setEnabled(False)
+        self.ui.pass_.setEnabled(False)
+        self.ui.eliminate.hide()
 
         if result == QDialog.Rejected:
             self.close()
@@ -263,6 +272,7 @@ class MainWindow(QMainWindow):
         self.hand_selector.clearChoose()
         self.ui.submit.setEnabled(False)
         self.ui.pass_.setEnabled(False)
+        self.ui.eliminate.hide()
 
     @Slot(Hand)
     def updateTable(self, hand: Hand):

@@ -226,13 +226,15 @@ class HandSelector(QObject):
 
     def updatePlayableCard(self, replies: list[tuple[Hand, bool, str]]):
         self.cardtypes: list[CardTypeBlock] = []
-        for hand, playable, not_playable_reason in replies:
+        playable_indexes = []
+        for i, (hand, playable, not_playable_reason) in enumerate(replies):
             hand.erased_card = None
 
             # 1 can also be erased
             if not playable and not_playable_reason == '首家需要打出1' and hand.eraseable:
                 hand.erased_card = 1
                 cardtype = CardTypeBlock(True, hand, need_erased_1=True)
+                playable_indexes.append(i)
             else:
                 cardtype = CardTypeBlock(playable, hand)
                 if not playable:
@@ -240,10 +242,14 @@ class HandSelector(QObject):
                     cardtype.ui.cannot_play_reason.setText(not_playable_reason)
                     cardtype.ui.cannot_play_reason.show()
                     cardtype.ui.eliminate.hide()
+                else:
+                    playable_indexes.append(i)
             self.cardtypes.append(cardtype)
 
         self.data_model = CardListModel(self.cardtypes)  # Example data
         self.listView.setModel(self.data_model)
+        if len(playable_indexes) == 1:
+            self.listView.setCurrentIndex(self.data_model.index(playable_indexes[0], 0))
             
 
     def getSelectedCard(self) -> tuple[int, CardTypeBlock]:
