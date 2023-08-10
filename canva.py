@@ -236,7 +236,7 @@ class Canva(QGraphicsScene):
         for i, slot in enumerate(self.played_card.slots):
             if slot is not None:
                 self.removeItem(slot)
-                self.slot.slots[i] = None
+                self.played_card.slots[i] = None
 
     def mouseReleaseEvent(self, event):
         items = self.items(event.scenePos())
