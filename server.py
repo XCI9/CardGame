@@ -5,7 +5,7 @@ import pickle
 from game import *
 import threading
 import time
-from ConnectionLogger import ConnectionLogger
+from logger import ConnectionLogger
 
 class GameCore:
     def __init__(self):

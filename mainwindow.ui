@@ -30,7 +30,7 @@
      <enum>Qt::ScrollBarAlwaysOff</enum>
     </property>
    </widget>
-   <widget class="QListView" name="cardChooser">
+   <widget class="QListView" name="card_selector">
     <property name="geometry">
      <rect>
       <x>810</x>
@@ -70,7 +70,7 @@
      <rect>
       <x>808</x>
       <y>440</y>
-      <width>201</width>
+      <width>239</width>
       <height>41</height>
      </rect>
     </property>
@@ -219,27 +219,6 @@
     </property>
     <property name="alignment">
      <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-    </property>
-   </widget>
-   <widget class="QLabel" name="gameover_msg">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>170</y>
-      <width>791</width>
-      <height>71</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>36</pointsize>
-     </font>
-    </property>
-    <property name="text">
-     <string>遊戲結束! 你贏了!</string>
-    </property>
-    <property name="alignment">
-     <set>Qt::AlignCenter</set>
     </property>
    </widget>
    <widget class="QLabel" name="card_count">

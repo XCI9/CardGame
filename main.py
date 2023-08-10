@@ -7,14 +7,14 @@ from ServerClientDialog_ui import Ui_Dialog as Ui_ServerClientDialog
 from PlayAgainDialog_ui import Ui_Dialog as Ui_PlayAgainDialog
 from canva import Canva
 from game import *
-from HandChooser import HandChooser, CardTypeBlock
+from hand import HandSelector, CardTypeBlock
 from client import NetworkHandler
 from server import startServer
 from package import Package
 import socket
 import pickle
 import os
-from ConnectionLogger import ConnectionLogger
+from logger import ConnectionLogger
 
 """
 The frame of this application
@@ -118,9 +118,9 @@ class MainWindow(QMainWindow):
 
         self.logger = ConnectionLogger('client')
 
-        self.handChooser = HandChooser(self.ui, self.socket)
-        self.handChooser.sendPackage.connect(self.sendPackage)
-        self.scene.chooseCardsChanged.connect(self.handChooser.changeChooseCards)
+        self.hand_selector = HandSelector(self.ui, self.socket)
+        self.hand_selector.sendPackage.connect(self.sendPackage)
+        self.scene.chooseCardsChanged.connect(self.hand_selector.changeChooseCards)
         self.ui.submit.clicked.connect(self.playCard)
         self.ui.eliminate.clicked.connect(self.chooseEliminate)
         self.ui.pass_.clicked.connect(self.pass_)
@@ -176,7 +176,7 @@ class MainWindow(QMainWindow):
         self.logger.log('connect', self.socket, '')
 
         self.network_handler = NetworkHandler(self.socket, self.logger)
-        self.network_handler.response_playable.connect(self.handChooser.updatePlayableCard)
+        self.network_handler.response_playable.connect(self.hand_selector.updatePlayableCard)
         self.network_handler.update_table.connect(self.updateTable)
         self.network_handler.init_card.connect(self.initCard)
         self.network_handler.your_turn.connect(self.setMyTurn)
@@ -206,7 +206,7 @@ class MainWindow(QMainWindow):
             return
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.handChooser.socket = self.socket
+        self.hand_selector.socket = self.socket
 
     @Slot(str)
     def gameover(self, winner: str):
@@ -224,7 +224,7 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def chooseEliminate(self):
-        self.handChooser.chooseEliminate(self.scene.slot)
+        self.hand_selector.chooseEliminate(self.scene.slot)
 
     @Slot()
     def pass_(self):
@@ -237,7 +237,7 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def playCard(self):
-        selected_index, card_type = self.handChooser.getSelectedCard()
+        selected_index, card_type = self.hand_selector.getSelectedCard()
         
         # nothing selected
         if selected_index == -1:
@@ -256,7 +256,7 @@ class MainWindow(QMainWindow):
         # put played card onto table
         self.sendPackage(Package.PlayCard(hand))
 
-        self.handChooser.clearChoose()
+        self.hand_selector.clearChoose()
         self.ui.submit.setEnabled(False)
         self.ui.pass_.setEnabled(False)
 

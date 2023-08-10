@@ -98,13 +98,13 @@ class CardListModel(QAbstractListModel):
 
         return None
 
-class HandChooser(QObject):
+class HandSelector(QObject):
     sendPackage = Signal(Package.Package)
 
     def __init__(self, ui: Ui_MainWindow, sock: socket.socket):
         super().__init__()
         self.ui = ui
-        self.listView = ui.cardChooser
+        self.listView = ui.card_selector
         self.socket = sock
 
         self.listView.setSelectionMode(QListView.SingleSelection)
