@@ -15,15 +15,15 @@ class GameCore:
         self.allow_start = []
 
     def start(self):
+        """Start the game"""
         return self.core.start()
     
     def getPlayerById(self, id) -> Player:
+        """Return player object given id"""
         return self.core.players[id]
     
-    """
-    Return if the name is set successfully
-    """
     def setName(self, player_id:int, name:str) -> bool:
+        """Return if the name is set successfully"""
         if name in self.names:
             return False
         self.names.add(name)
@@ -32,12 +32,11 @@ class GameCore:
         return True
 
     def isPlayerFull(self) -> bool:
+        """Return if the game is full and so cannot join new player"""
         return len(self.core.players) == 3
 
-    """
-    Return player id if join success, -1 if failed
-    """
     def join(self):
+        """Return player id if join success, -1 if failed"""
         accept = self.core.join(Player())
 
         if accept:
@@ -46,10 +45,12 @@ class GameCore:
         return -1
     
     def leave(self, player_id: int):
+        """Delete the player from the game"""
         del self.core.players[player_id]
         del self.allow_start[player_id]
 
     def playHand(self, player_id:int, hand: Hand):
+        """Player play a hand"""
         id = player_id
         if hand is None:
             return
@@ -66,14 +67,16 @@ class GameCore:
         if self.winner is None and len(self.core.players[id].cards) == 0:
             self.winner = id
 
-    def getCardCounts(self):
+    def getCardCounts(self) -> list[int]:
+        """Return cards count of each player"""
         cards_count = []
         for player in self.core.players:
             cards_count.append((player.name, len(player.cards)))
 
         return cards_count
     
-    def getPlayersName(self):
+    def getPlayersName(self) -> list[str]:
+        """Return all exists players' name"""
         names = []
         for player in self.core.players:
             names.append(player.name)
@@ -81,25 +84,22 @@ class GameCore:
         return names
 
     def evaluateHands(self, hands:Hand):
+        """Given hands, evaluate each hand and return the results"""
         results = []
         for hand in hands:
             valid, reason = self.core.is_playable_hand(hand)
             results.append((hand, valid, reason))
 
         return results
-    
-    """
-    Return next player id, should be called after turn_forward
-    """
+     
     def getNextTurnPlayer(self) -> int:
+        """Return next player id, should be called after turn_forward """
         for i, player in enumerate(self.core.players):
             if player.his_turn:
                 return i
 
-    """
-    Return the winner id if the game end, else return None
-    """
     def turn_forward(self, is_last_player_pass:bool):
+        """Return the winner id if the game end, else return None"""
         self.core.turn_forward(is_last_player_pass)
 
         if self.core.game_playing is False:
@@ -108,6 +108,7 @@ class GameCore:
         return None
 
     def allPlayerReady(self):
+        """Return if all players are ready to play the games"""
         return all(self.allow_start)
 
 
