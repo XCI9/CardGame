@@ -3,7 +3,7 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QDialog
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QIntValidator
 from mainwindow_ui import Ui_MainWindow
-from ServerClientDialog_ui import Ui_Dialog as Ui_ServerClientDialog
+from LauncherDialog_ui import Ui_Dialog as Ui_ServerClientDialog
 from PlayAgainDialog_ui import Ui_Dialog as Ui_PlayAgainDialog
 from canva import Canva
 from game import *
@@ -24,7 +24,7 @@ Each tabs is composed of two parts, widget and controller,
 we'll initial the widget first and pass it to a controller to control it
 """
 
-class ServerClientDialog(QDialog):
+class LauncherDialog(QDialog):
     make_connection = Signal(str,str,int)
     def __init__(self, parent = None):
         super().__init__(parent)
@@ -101,7 +101,7 @@ class PlayAgainDialog(QDialog):
         self.play_again.emit()
 
 class MainWindow(QMainWindow):
-    cannotMakeConnection = Signal(str)
+    connect_failed = Signal(str)
     def __init__(self, parent=None):
         super().__init__(parent)
         self.ui = Ui_MainWindow()
@@ -127,8 +127,8 @@ class MainWindow(QMainWindow):
 
         self.network_handler = None
 
-        self.dialog = ServerClientDialog()
-        self.cannotMakeConnection.connect(self.dialog.reinputInfo)
+        self.dialog = LauncherDialog()
+        self.connect_failed.connect(self.dialog.reinputInfo)
         self.dialog.make_connection.connect(self.makeConnection)
         result = self.dialog.exec()
 
@@ -150,7 +150,6 @@ class MainWindow(QMainWindow):
 
         self.ui.cannot_play_msg.hide()
         self.ui.eliminate.hide()
-        self.ui.gameover_msg.hide()
 
     @Slot(Package.Package)
     def sendPackage(self, package:Package.Package):
@@ -165,12 +164,12 @@ class MainWindow(QMainWindow):
                 startServer("0.0.0.0", port)
             except OSError as e:
                 print(e)
-                self.cannotMakeConnection.emit('無法啟動伺服器!')
+                self.connect_failed.emit('無法啟動伺服器!')
                 return
         try:
             self.socket.connect((ip, port))
         except ConnectionRefusedError:
-            self.cannotMakeConnection.emit('無法與伺服器建立連線!')
+            self.connect_failed.emit('無法與伺服器建立連線!')
             return
         
         self.logger.log('connect', self.socket, '')
