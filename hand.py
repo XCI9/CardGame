@@ -125,6 +125,7 @@ class HandSelector(QObject):
 
         self.can_eliminate_index = None
 
+        self.choose_cards = []
         self.possible_types = None
     
     
@@ -200,12 +201,26 @@ class HandSelector(QObject):
             self.ui.submit.show()
             self.ui.eliminate.setText('消除')
 
+    def refreshPlayableCard(self):
+        self.data_model = CardListModel([])
+        self.listView.setModel(self.data_model)
+
+        possible_types = evaluate_cards(self.choose_cards)
+        self.ui.eliminate.hide()
+        self.is_choosing_eliminate = False
+
+        self.sendPackage.emit(Package.ChkValid(possible_types))
+
+        self.possible_types = possible_types
+        
+
     @Slot(list)
     def changeChooseCards(self, cards:list):
         # may be hide by eliminate function
         self.ui.submit.show()
         self.is_choosing_eliminate = False
 
+        self.choose_cards = cards
         possible_types = evaluate_cards(cards)
         #print(possible_types)
         self.ui.eliminate.hide()
@@ -224,7 +239,7 @@ class HandSelector(QObject):
 
         
 
-    def updatePlayableCard(self, replies: list[tuple[Hand, bool, str]]):
+    def setPlayableCard(self, replies: list[tuple[Hand, bool, str]]):
         self.cardtypes: list[CardTypeBlock] = []
         playable_indexes = []
         for i, (hand, playable, not_playable_reason) in enumerate(replies):
@@ -267,3 +282,4 @@ class HandSelector(QObject):
 
     def clearChoose(self):
         self.listView.setModel(CardListModel([]))
+        self.choose_cards = []

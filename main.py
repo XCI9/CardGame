@@ -179,7 +179,7 @@ class MainWindow(QMainWindow):
         self.logger.log('connect', self.socket, '')
 
         self.network_handler = NetworkHandler(self.socket, self.logger)
-        self.network_handler.response_playable.connect(self.hand_selector.updatePlayableCard)
+        self.network_handler.response_playable.connect(self.hand_selector.setPlayableCard)
         self.network_handler.update_table.connect(self.updateTable)
         self.network_handler.init_card.connect(self.initCard)
         self.network_handler.your_turn.connect(self.setMyTurn)
@@ -234,6 +234,7 @@ class MainWindow(QMainWindow):
     @Slot(str)
     def changeTurnName(self, name:str):
         self.ui.turn_player_name.setText(f'目前輪到: {name}')
+        self.hand_selector.refreshPlayableCard()
 
     @Slot()
     def chooseEliminate(self):
@@ -303,6 +304,7 @@ class MainWindow(QMainWindow):
     def setMyTurn(self, is_forced: bool):
         self.ui.submit.setEnabled(True)
         self.ui.turn_player_name.setText(f'目前輪到: 你')
+        self.hand_selector.refreshPlayableCard()
         if not is_forced:
             self.ui.pass_.setEnabled(True)
 
