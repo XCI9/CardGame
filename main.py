@@ -228,6 +228,10 @@ class MainWindow(QMainWindow):
         self.ui.pass_.setEnabled(False)
         self.ui.eliminate.hide()
 
+        self.ui.prev_hand.removeWidget(self.prev_hand)
+        self.prev_hand.deleteLater()
+        self.prev_hand = None
+
         if result == QDialog.Rejected:
             self.close()
 
