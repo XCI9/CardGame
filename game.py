@@ -111,7 +111,7 @@ def ind_higher_ranking(hand1: Hand, hand2: Hand) -> Literal[0, 1, 2]:
     if rank1 == rank2: result = 0
     return result
 
-
+CARDCOUNT = 31
 def evaluate_cards(cards: tuple[int] | list[int],
                    reprc_left: list[int] = []) -> list[Hand]:
     """Evaluate all available hands that can be made.
@@ -149,7 +149,9 @@ def evaluate_cards(cards: tuple[int] | list[int],
             suit = -1
             avaliable.append( Hand(cards, rank, value, suit) )
         ####  straight  ####
-        if cards[2] - cards[1] == 1 and cards[1] - cards[0] == 1:
+        if  (cards[2] - cards[1] == 1 and cards[1] - cards[0] == 1) or\
+            (cards[2] - cards[1] == 1 and (cards[0] + CARDCOUNT) - cards[2] == 1) or\
+            (cards[0] - (cards[2] - CARDCOUNT) == 1 and cards[1] - cards[0] == 1):
             rank = 'straight'
             value = sum([max(int(digit) for digit in str(card)) for card in cards])
             suit = -1
@@ -343,6 +345,7 @@ class TableClassic(Table):
             return False
         # initialize
         self.game_playing = True
+        self.previous_hand = Hand((), 'None', -1, -1)
         for player in self.players:
             player.cards = []
             player.selected_cards = []

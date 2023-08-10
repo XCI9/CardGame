@@ -3,18 +3,18 @@ from PySide6.QtWidgets import QApplication, QMainWindow, QLabel, QDialog
 from PySide6.QtCore import Qt, Signal, Slot
 from PySide6.QtGui import QIntValidator
 from mainwindow_ui import Ui_MainWindow
-from ServerClientDialog_ui import Ui_Dialog as Ui_ServerClientDialog
+from LauncherDialog_ui import Ui_Dialog as Ui_ServerClientDialog
 from PlayAgainDialog_ui import Ui_Dialog as Ui_PlayAgainDialog
 from canva import Canva
 from game import *
-from HandChooser import HandChooser, CardTypeBlock
+from hand import HandSelector, CardTypeBlock
 from client import NetworkHandler
 from server import startServer
 from package import Package
 import socket
 import pickle
 import os
-from ConnectionLogger import ConnectionLogger
+from logger import ConnectionLogger
 
 """
 The frame of this application
@@ -24,7 +24,7 @@ Each tabs is composed of two parts, widget and controller,
 we'll initial the widget first and pass it to a controller to control it
 """
 
-class ServerClientDialog(QDialog):
+class LauncherDialog(QDialog):
     make_connection = Signal(str,str,int)
     def __init__(self, parent = None):
         super().__init__(parent)
@@ -101,7 +101,7 @@ class PlayAgainDialog(QDialog):
         self.play_again.emit()
 
 class MainWindow(QMainWindow):
-    cannotMakeConnection = Signal(str)
+    connect_failed = Signal(str)
     def __init__(self, parent=None):
         super().__init__(parent)
         self.ui = Ui_MainWindow()
@@ -118,17 +118,17 @@ class MainWindow(QMainWindow):
 
         self.logger = ConnectionLogger('client')
 
-        self.handChooser = HandChooser(self.ui, self.socket)
-        self.handChooser.sendPackage.connect(self.sendPackage)
-        self.scene.chooseCardsChanged.connect(self.handChooser.changeChooseCards)
+        self.hand_selector = HandSelector(self.ui, self.socket)
+        self.hand_selector.sendPackage.connect(self.sendPackage)
+        self.scene.chooseCardsChanged.connect(self.hand_selector.changeChooseCards)
         self.ui.submit.clicked.connect(self.playCard)
         self.ui.eliminate.clicked.connect(self.chooseEliminate)
         self.ui.pass_.clicked.connect(self.pass_)
 
         self.network_handler = None
 
-        self.dialog = ServerClientDialog()
-        self.cannotMakeConnection.connect(self.dialog.reinputInfo)
+        self.dialog = LauncherDialog()
+        self.connect_failed.connect(self.dialog.reinputInfo)
         self.dialog.make_connection.connect(self.makeConnection)
         result = self.dialog.exec()
 
@@ -150,7 +150,6 @@ class MainWindow(QMainWindow):
 
         self.ui.cannot_play_msg.hide()
         self.ui.eliminate.hide()
-        self.ui.gameover_msg.hide()
 
     @Slot(Package.Package)
     def sendPackage(self, package:Package.Package):
@@ -165,18 +164,18 @@ class MainWindow(QMainWindow):
                 startServer("0.0.0.0", port)
             except OSError as e:
                 print(e)
-                self.cannotMakeConnection.emit('無法啟動伺服器!')
+                self.connect_failed.emit('無法啟動伺服器!')
                 return
         try:
             self.socket.connect((ip, port))
         except ConnectionRefusedError:
-            self.cannotMakeConnection.emit('無法與伺服器建立連線!')
+            self.connect_failed.emit('無法與伺服器建立連線!')
             return
         
         self.logger.log('connect', self.socket, '')
 
         self.network_handler = NetworkHandler(self.socket, self.logger)
-        self.network_handler.response_playable.connect(self.handChooser.updatePlayableCard)
+        self.network_handler.response_playable.connect(self.hand_selector.updatePlayableCard)
         self.network_handler.update_table.connect(self.updateTable)
         self.network_handler.init_card.connect(self.initCard)
         self.network_handler.your_turn.connect(self.setMyTurn)
@@ -196,6 +195,11 @@ class MainWindow(QMainWindow):
         self.scene.resetTable()
         self.scene.initCard(cards)
 
+        # reset rule
+        for enable_rule_num, label, name in self.rule_info:
+            label.setText(f'{name}✘')
+            label.setStyleSheet('QLabel{color:#f00}')
+
     def connectionLose(self):
         if self.dialog.isVisible():
             self.dialog.reinputInfo('伺服器關閉了連線!')
@@ -206,7 +210,7 @@ class MainWindow(QMainWindow):
             return
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.handChooser.socket = self.socket
+        self.hand_selector.socket = self.socket
 
     @Slot(str)
     def gameover(self, winner: str):
@@ -224,7 +228,7 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def chooseEliminate(self):
-        self.handChooser.chooseEliminate(self.scene.slot)
+        self.hand_selector.chooseEliminate(self.scene.slot)
 
     @Slot()
     def pass_(self):
@@ -237,7 +241,7 @@ class MainWindow(QMainWindow):
 
     @Slot()
     def playCard(self):
-        selected_index, card_type = self.handChooser.getSelectedCard()
+        selected_index, card_type = self.hand_selector.getSelectedCard()
         
         # nothing selected
         if selected_index == -1:
@@ -256,7 +260,7 @@ class MainWindow(QMainWindow):
         # put played card onto table
         self.sendPackage(Package.PlayCard(hand))
 
-        self.handChooser.clearChoose()
+        self.hand_selector.clearChoose()
         self.ui.submit.setEnabled(False)
         self.ui.pass_.setEnabled(False)
 

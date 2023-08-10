@@ -121,7 +121,8 @@ class PublicCardPlacer:
 
     def putCard(self, canva:QGraphicsScene, number:int):
         x = self.getSlotX(self.current_card_count)
-        card = self.makeCard(number)    
+        card = self.makeCard(number)  
+        self.slots[self.current_card_count] = card  
         card.setX(x)
         canva.addItem(card)
         self.current_card_count += 1
@@ -231,10 +232,11 @@ class Canva(QGraphicsScene):
                 self.removeItem(slot)
                 self.slot.slots[i] = None
 
+        self.played_card.current_card_count  = 0
         for i, slot in enumerate(self.played_card.slots):
             if slot is not None:
                 self.removeItem(slot)
-                self.slot.slots[i] = None
+                self.played_card.slots[i] = None
 
     def mouseReleaseEvent(self, event):
         items = self.items(event.scenePos())

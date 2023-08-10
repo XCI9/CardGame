@@ -3,7 +3,7 @@ from game import *
 import pickle
 from package import Package
 from PySide6.QtCore import Qt, Signal, QThread
-from ConnectionLogger import ConnectionLogger
+from logger import ConnectionLogger
 
 HOST = "127.0.0.1"
 PORT = 8888

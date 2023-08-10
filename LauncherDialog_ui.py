@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 ################################################################################
-## Form generated from reading UI file 'ServerClientDialog.ui'
+## Form generated from reading UI file 'LauncherDialog.ui'
 ##
 ## Created by: Qt User Interface Compiler version 6.5.1
 ##

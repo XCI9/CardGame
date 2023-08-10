@@ -98,13 +98,13 @@ class CardListModel(QAbstractListModel):
 
         return None
 
-class HandChooser(QObject):
+class HandSelector(QObject):
     sendPackage = Signal(Package.Package)
 
     def __init__(self, ui: Ui_MainWindow, sock: socket.socket):
         super().__init__()
         self.ui = ui
-        self.listView = ui.cardChooser
+        self.listView = ui.card_selector
         self.socket = sock
 
         self.listView.setSelectionMode(QListView.SingleSelection)
@@ -239,6 +239,7 @@ class HandChooser(QObject):
                     cardtype.setStyleSheet('QLabel{color:#999}')
                     cardtype.ui.cannot_play_reason.setText(not_playable_reason)
                     cardtype.ui.cannot_play_reason.show()
+                    cardtype.ui.eliminate.hide()
             self.cardtypes.append(cardtype)
 
         self.data_model = CardListModel(self.cardtypes)  # Example data
