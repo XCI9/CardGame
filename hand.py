@@ -250,6 +250,12 @@ class HandSelector(QObject):
         self.listView.setModel(self.data_model)
         if len(playable_indexes) == 1:
             self.listView.setCurrentIndex(self.data_model.index(playable_indexes[0], 0))
+
+            selected_data = self.cardtypes[playable_indexes[0]]
+            if selected_data.hand.eraseable and not selected_data.need_erased_1:
+                self.ui.eliminate.show()
+            else:
+                self.ui.eliminate.hide()
             
 
     def getSelectedCard(self) -> tuple[int, CardTypeBlock]:
