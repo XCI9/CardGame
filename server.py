@@ -19,7 +19,7 @@ class GameCore:
         self.winner = None
         return self.core.start()
     
-    def getPlayerById(self, id) -> Player:
+    def getPlayerById(self, id:int) -> Player:
         """Return player object given id"""
         return self.core.players[id]
     
