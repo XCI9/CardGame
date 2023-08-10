@@ -16,6 +16,7 @@ class GameCore:
 
     def start(self):
         """Start the game"""
+        self.winner = None
         return self.core.start()
     
     def getPlayerById(self, id) -> Player:

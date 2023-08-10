@@ -224,6 +224,10 @@ class MainWindow(QMainWindow):
         self.gameover_dialog.ui.play_again.setText('再來一場')
         result = self.gameover_dialog.exec()
 
+        self.ui.submit.setEnabled(False)
+        self.ui.pass_.setEnabled(False)
+        self.ui.eliminate.hide()
+
         if result == QDialog.Rejected:
             self.close()
 
@@ -268,6 +272,7 @@ class MainWindow(QMainWindow):
         self.hand_selector.clearChoose()
         self.ui.submit.setEnabled(False)
         self.ui.pass_.setEnabled(False)
+        self.ui.eliminate.hide()
 
     @Slot(Hand)
     def updateTable(self, hand: Hand):
