@@ -182,7 +182,7 @@ def evaluate_cards(cards: tuple[int] | list[int]) -> list[Hand]:
         ####  square  ####
         if cards[0]**2 == cards[1]:
             rank = 'square'
-            value = sum(reprc)
+            value = cards[1]
             suit = -1
             avaliable.append( Hand(cards, rank, value, suit) )
 
@@ -344,7 +344,7 @@ class TableClassic(Table):
             return False
         # initialize
         self.game_playing = True
-        self.previous_hand = Hand((), 'None', -1, -1)
+        self.empty_previous_hand()
         for player in self.players:
             player.cards = []
             player.selected_cards = []
@@ -421,17 +421,18 @@ class TableClassic(Table):
             -1 to return previous active player.
         """
         holder = self._token
+        num_player = len(self.players)
         if shift == 0:
             return self.players[holder]
         if shift == +1:
-            next_holder = (holder + 1) % 3
+            next_holder = (holder + 1) % num_player
             if not self.players[next_holder].in_game:
-                next_holder = (next_holder + 1) % 3
+                next_holder = (next_holder + 1) % num_player
             return self.players[next_holder]
         if shift == -1:
-            prev_holder = (3 + holder - 1) % 3
+            prev_holder = (num_player + holder - 1) % num_player
             if not self.players[prev_holder].in_game:
-                prev_holder = (3 + prev_holder - 1) % 3
+                prev_holder = (num_player + prev_holder - 1) % num_player
             return self.players[prev_holder]
 
     def turn_forward(self, played_hand: bool) -> None:
@@ -464,15 +465,16 @@ class TableClassic(Table):
         # p1 end -> p2 pass -> p3 pass -> [p2 can't pass but can play freely]
         self.turn += 1 
         holder = self._token
-        next_holder = (holder + 1) % 3
+        num_player = len(self.players)
+        next_holder = (holder + 1) % num_player
         if not self.players[next_holder].in_game:
             if self.players[next_holder].lastplayed:
                 self.empty_previous_hand()
                 self.players[next_holder].lastplayed = False
                 next_active_player.lastplayed = True
-            next_holder = (next_holder + 1) % 3
+            next_holder = (next_holder + 1) % num_player
         self._token = next_holder
-        
+
 
     def play_hand(self, newhand: Hand) -> None:
         """play a hand onto table. Update rule9's if matches."""
