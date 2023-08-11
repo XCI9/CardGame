@@ -182,7 +182,7 @@ def evaluate_cards(cards: tuple[int] | list[int]) -> list[Hand]:
         ####  square  ####
         if cards[0]**2 == cards[1]:
             rank = 'square'
-            value = sum(reprc)
+            value = cards[1]
             suit = -1
             avaliable.append( Hand(cards, rank, value, suit) )
 
