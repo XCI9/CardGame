@@ -205,7 +205,7 @@ class Canva(QGraphicsScene):
 
         self.played_card = PublicCardPlacer()
 
-        self.slot = PrivateCardPlacer(11)
+        self.slot = PrivateCardPlacer(15)
         
     def initCard(self, numbers:list):
         for i, n in enumerate(numbers):

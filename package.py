@@ -49,6 +49,7 @@ class Package:
     @dataclass(init=True)
     class GetPlayer(Package):
         players: list[str]
+        full_count: int # the player count in current gamemode
 
     @dataclass(init=True)
     class AgainChk(Package):

@@ -13,6 +13,7 @@ class GameCore:
         self.winner = None
         self.names = set()
         self.allow_start = []
+        self.player_count = 3
 
     def start(self):
         """Start the game"""
@@ -34,7 +35,7 @@ class GameCore:
 
     def isPlayerFull(self) -> bool:
         """Return if the game is full and so cannot join new player"""
-        return len(self.core.players) == 3
+        return len(self.core.players) == self.player_count
 
     def join(self):
         """Return player id if join success, -1 if failed"""
@@ -117,6 +118,10 @@ class ServerHandler(socketserver.BaseRequestHandler):
     clients:list[socket.socket] = []
     core = GameCore()
     logger = ConnectionLogger('server')
+    init = False
+
+    def setPlayerCount(self, count: int):
+        self.core.player_count = count
 
     def sendPackage(self, client:socket.socket, package: Package.Package):
         #print(f'send package: {package}')
@@ -190,7 +195,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
         self.updateCardCount()
 
     def updatePlayer(self):
-        self.broadcastPackage(Package.GetPlayer(self.core.getPlayersName()))
+        self.broadcastPackage(Package.GetPlayer(self.core.getPlayersName(),self.core.player_count))
 
     def evaluateHands(self, hands:Hand):
         package = Package.ResValid(self.core.evaluateHands(hands))
@@ -226,6 +231,11 @@ class ServerHandler(socketserver.BaseRequestHandler):
 
             
     def handle(self):
+        # Only run at first time
+        if not self.init:
+            self.init = True
+            self.setPlayerCount(self.server.player_count)
+
         self.logger.log('connect', self.request, '')
         player_id = self.core.join()
         if player_id == -1:
@@ -260,8 +270,9 @@ class ServerHandler(socketserver.BaseRequestHandler):
                 case Package.AgainChk(): self.againCheck(player_id, package.agree)
                 case _:                  raise NotImplementedError
 
-def startServer(host, port):
+def startServer(host:str, port:int, player_count:int):
     server = socketserver.ThreadingTCPServer((host, port), ServerHandler)
+    server.player_count = player_count
     print(f'serve on {host}:{port}')
 
     server_thread = threading.Thread(target=server.serve_forever)

@@ -27,7 +27,7 @@ we'll initial the widget first and pass it to a controller to control it
 """
 
 class LauncherDialog(QDialog):
-    make_connection = Signal(str,str,int)
+    make_connection = Signal(str,str,int,int)
     def __init__(self, parent = None):
         super().__init__(parent)
         self.ui = Ui_ServerClientDialog()
@@ -36,6 +36,10 @@ class LauncherDialog(QDialog):
         only_int = QIntValidator()
         only_int.setRange(0, 65536)
         self.ui.port.setValidator(only_int)
+
+        only_int = QIntValidator()
+        only_int.setRange(2, 3)
+        self.ui.player_count.setValidator(only_int)
 
         #default name use current user name
         self.ui.name.setText(os.getlogin())
@@ -46,13 +50,13 @@ class LauncherDialog(QDialog):
 
         self.ui.submit.clicked.connect(self.submit)
 
-    def updatePlayers(self, players: list[str]):
-        player_str = f'玩家({len(players)}/3):'
+    def updatePlayers(self, players: list[str], full_count: int):
+        player_str = f'玩家({len(players)}/{full_count}):'
         for player in players:
             player_str += f' {player},'
         self.ui.information.setText(player_str[:-1])
 
-        if len(players) == 3: # start game
+        if len(players) == full_count: # start game
             self.accept()
 
     def submit(self):       
@@ -61,13 +65,17 @@ class LauncherDialog(QDialog):
         self.ui.name.setEnabled(False)
         self.ui.ip.setEnabled(False)
         self.ui.port.setEnabled(False)
+        self.ui.player_count.setEnabled(False)
+        self.ui.client.setEnabled(False)
+        self.ui.server.setEnabled(False)
         self.ui.information.setText('')
         self.ui.information.setStyleSheet('')
 
         if self.ui.client.isChecked():
-            self.make_connection.emit("client", self.ui.ip.text(), int(self.ui.port.text()))
+            self.make_connection.emit("client", self.ui.ip.text(), int(self.ui.port.text()), -1)
         else:
-            self.make_connection.emit("server", "127.0.0.1", int(self.ui.port.text()))
+            self.make_connection.emit("server", "127.0.0.1", 
+                                      int(self.ui.port.text()), int(self.ui.player_count.text()))
 
         self.ui.information.show()
 
@@ -76,15 +84,20 @@ class LauncherDialog(QDialog):
         self.ui.submit.setEnabled(True)
         self.ui.name.setEnabled(True)
         self.ui.ip.setEnabled(self.ui.client.isChecked())
+        self.ui.player_count.setEnabled(self.ui.server.isChecked())
         self.ui.port.setEnabled(True)
+        self.ui.client.setEnabled(True)
+        self.ui.server.setEnabled(True)
         self.ui.information.setText(error_msg)
         self.ui.information.setStyleSheet('QLabel{color:#f00}')
 
     def modeChange(self):
         if self.ui.client.isChecked():
             self.ui.ip.setEnabled(True)
+            self.ui.player_count.setEnabled(False)
         else:
             self.ui.ip.setEnabled(False)
+            self.ui.player_count.setEnabled(True)
 
 class PlayAgainDialog(QDialog):
     play_again = Signal()
@@ -164,11 +177,11 @@ class MainWindow(QMainWindow):
         self.socket.sendall(header + package_byte)
         self.logger.log('send', self.socket, str(package))
 
-    @Slot(str, str, int)
-    def makeConnection(self, type:str, ip:str, port: int):
+    @Slot(str, str, int, int)
+    def makeConnection(self, type:str, ip:str, port: int, player_count: int):
         if type == 'server':
             try:
-                startServer("0.0.0.0", port)
+                startServer("0.0.0.0", port, player_count)
             except OSError as e:
                 print(e)
                 self.connect_failed.emit('無法啟動伺服器!')

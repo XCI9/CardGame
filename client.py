@@ -18,7 +18,7 @@ class NetworkHandler(QThread):
     change_turn = Signal(str)
     response_playable = Signal(list)
     update_cards_count = Signal(list)
-    update_players = Signal(list)
+    update_players = Signal(list, int)
     connection_lose = Signal()
 
     def __init__(self, socket: socket.socket, logger: ConnectionLogger):
@@ -47,7 +47,7 @@ class NetworkHandler(QThread):
                 case Package.ChangeTurn(): self.change_turn.emit(package.name)
                 case Package.GameOver():   self.gameover.emit(package.winner)
                 case Package.CardLeft():   self.update_cards_count.emit(package.cards_count)
-                case Package.GetPlayer():  self.update_players.emit(package.players)
+                case Package.GetPlayer():  self.update_players.emit(package.players, package.full_count)
                 case _:                    raise NotImplementedError
         self.logger.log('disconnect', self.socket, '')
         self.socket.shutdown(socket.SHUT_RDWR)
