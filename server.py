@@ -2,7 +2,7 @@ import socketserver
 import socket
 from package import Package
 import pickle
-from game import *
+from utilities import *
 import threading
 import struct
 from logger import ConnectionLogger
@@ -262,7 +262,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
 
             package = pickle.loads(self.data)
             self.logger.log('recv', self.request, str(package))
-            
+
             match package:
                 case Package.PlayCard(): self.playHand(player_id, package.hand)
                 case Package.ChkValid(): self.evaluateHands(package.hands)

@@ -1,5 +1,5 @@
 import enum
-from game import *
+from utilities import *
 from dataclasses import dataclass
 
 class Package:

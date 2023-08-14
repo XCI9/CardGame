@@ -6,7 +6,7 @@ from mainwindow_ui import Ui_MainWindow
 from LauncherDialog_ui import Ui_Dialog as Ui_ServerClientDialog
 from PlayAgainDialog_ui import Ui_Dialog as Ui_PlayAgainDialog
 from canva import Canva
-from game import *
+from utilities import *
 from hand import HandSelector, CardTypeBlock
 from client import NetworkHandler
 from server import startServer

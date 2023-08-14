@@ -7,7 +7,7 @@ from mainwindow_ui import Ui_MainWindow
 from package import Package
 from cardtype_ui import Ui_Form as CardTypeForm
 from canva import PrivateCardPlacer
-from game import *
+from utilities import *
 import socket
 
 class CardTypeBlock(QWidget):

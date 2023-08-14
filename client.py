@@ -1,5 +1,5 @@
 import socket
-from game import *
+from utilities import *
 import pickle
 from package import Package
 from PySide6.QtCore import Qt, Signal, QThread
