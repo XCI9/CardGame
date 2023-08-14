@@ -476,7 +476,6 @@ class TableClassic(Table):
             next_holder = (next_holder + 1) % num_player
         self._token = next_holder
 
-
     def play_hand(self, newhand: Hand) -> None:
         """play a hand onto table. Update rule9's if matches."""
         self.previous_hand = newhand
