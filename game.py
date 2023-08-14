@@ -1,7 +1,7 @@
 from utilities import *
 
 
-class PlayerUI:
+class PlayerUtility:
     def __init__(self, player: Player, table: TableClassic) -> None:
         self.table = table
         self.player = player
@@ -12,10 +12,6 @@ class PlayerUI:
         self.prevhand_of_table = None
         self.cards_hold = []
         self.cards_ontable = []
-    def update_table_and_holds(self):
-        self.cards_hold = self.player.cards
-        self.cards_ontable = self.table.cards
-        self.prevhand_of_table = self.table.previous_hand
     def update_handsinfo(self):
         """Update information about hands, avaliable and playable.
 
@@ -80,7 +76,9 @@ class PlayerUI:
 class GameCore: 
     def __init__(self, table: TableClassic) -> None:
         self.table = table
-
+        self.p: PlayerUtility = []
+    
     def start(self):
         self.table.start()
-
+        for player in self.table.players:
+            self.p.append(PlayerUtility(player, self.table))
