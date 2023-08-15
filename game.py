@@ -74,10 +74,12 @@ class PlayerUtility:
 class GameCore: 
     def __init__(self, table: TableClassic) -> None:
         self.table = table
-        self.p: PlayerUtility = []
+        self.p: list[PlayerUtility] = []
     
     def start(self):
         self.table.start()
 
         for player in self.table.players:
             self.p.append(PlayerUtility(player, self.table))
+
+
