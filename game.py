@@ -66,7 +66,11 @@ class PlayerUtility:
         """Call this method when a player press '消除'."""
         if len(self.player.selected_cards) != 1:
             return False
-        self.table.erase(self.player.selected_cards[0])
+        card_tbp = self.player.selected_cards[0]
+        if self.table.turn == 1:
+            if card_tbp != 1:
+                return False
+        self.table.erase(card_tbp)
         self.table.turn_forward(played_hand=True)
         self.for_erase = False
         return True
@@ -81,5 +85,5 @@ class GameCore:
 
         for player in self.table.players:
             self.p.append(PlayerUtility(player, self.table))
-
+    
 

@@ -385,8 +385,9 @@ class TableClassic(Table):
             The message about why a hand is not playable. Empty string
             when the hand is playable.
         """
-        if len(self.cards) == 0 and 1 not in newhand.card:
-            return False, "首家需要打出1"
+        if self.turn == 1:
+            if 1 not in newhand.card and not newhand.eraseable:
+                return False, "首家需要打出1"
         if self.previous_hand.rank == 'None':
             return True, ''
         if (len(self.previous_hand) == 1 and len(newhand) == 2):
