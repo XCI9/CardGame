@@ -21,7 +21,6 @@ class PlayerUtility:
         self.avalhands_info = []
         avalhands = evaluate_cards(self.select_cards)
         for avalhand in avalhands:
-            self.side_bar.append(avalhand)
             playable, info = self.table.is_playable_hand(avalhand)
             if playable:
                 self.avalhands_info.append('playable')
