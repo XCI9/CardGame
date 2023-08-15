@@ -67,7 +67,7 @@ class PlayerUtility:
         if len(self.player.selected_cards) != 1:
             return False
         card_tbp = self.player.selected_cards[0]
-        if self.table.turn == 1:
+        if self.table.turn == 1 and 1 not in self.table:
             if card_tbp != 1:
                 return False
         self.table.erase(card_tbp)
