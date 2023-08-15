@@ -9,9 +9,10 @@ from cardtype_ui import Ui_Form as CardTypeForm
 from canva import PrivateCardPlacer
 from utilities import *
 import socket
+from typing import Optional
 
 class CardTypeBlock(QWidget):
-    def __init__(self, playable = True, hand:Hand = None, need_erased_1 = False, parent=None):
+    def __init__(self, playable = True, hand: Optional[Hand] = None, need_erased_1 = False, parent=None):
         super().__init__(parent)
 
         self.hand = hand
@@ -22,7 +23,7 @@ class CardTypeBlock(QWidget):
         self.ui.cannot_play_reason.hide()
 
         # set displayed info
-        if self.hand is not None:
+        if hand is not None:
 
             # "<N> [<N> <N>]"
             card_number_str = ''
@@ -65,11 +66,11 @@ class CardTypeDelegate(QStyledItemDelegate):
         self._parent = parent
 
     def sizeHint(self, option, index):
-        return index.data(Qt.SizeHintRole)
+        return index.data(Qt.ItemDataRole.SizeHintRole)
 
     def paint(self, painter, option, index):
         if index.isValid():
-            widget = index.data(Qt.DisplayRole)
+            widget = index.data(Qt.ItemDataRole.DisplayRole)
             if isinstance(widget, CardTypeBlock):
                 # Draw the CardTypeBlock widget onto the painter
                 widget.render(painter, option.rect.topLeft() + self.listView.pos(), QRegion())
@@ -77,7 +78,7 @@ class CardTypeDelegate(QStyledItemDelegate):
 
     def initStyleOption(self, option, index):
         super().initStyleOption(option, index)
-        item_data: CardTypeBlock = index.data(Qt.DisplayRole)
+        item_data: CardTypeBlock = index.data(Qt.ItemDataRole.DisplayRole)
         if not item_data.playable:  # Disable selection
             option.state &= ~QStyle.State_Selected
 
@@ -90,10 +91,10 @@ class CardListModel(QAbstractListModel):
         return len(self._data)
 
     def data(self, index, role):
-        if index.isValid() and role == Qt.DisplayRole:
+        if index.isValid() and role == Qt.ItemDataRole.DisplayRole:
             return self._data[index.row()]
 
-        if index.isValid() and role == Qt.SizeHintRole:
+        if index.isValid() and role == Qt.ItemDataRole.SizeHintRole:
             return QSize(244, 54)  # Adjust size hint as needed
 
         return None
@@ -107,8 +108,8 @@ class HandSelector(QObject):
         self.listView = ui.card_selector
         self.socket = sock
 
-        self.listView.setSelectionMode(QListView.SingleSelection)
-        self.listView.setSelectionBehavior(QListView.SelectRows)
+        self.listView.setSelectionMode(QListView.SelectionMode.SingleSelection)
+        self.listView.setSelectionBehavior(QListView.SelectionBehavior.SelectRows)
         self.listView.clicked.connect(self.handle_item_selection)
 
         self.cardtypes: list[CardTypeBlock] = []
@@ -123,15 +124,15 @@ class HandSelector(QObject):
 
         self.is_choosing_eliminate = False
 
-        self.can_eliminate_index = None
+        self.can_eliminate_index = -1
 
-        self.choose_cards = []
-        self.possible_types = None
+        self.choose_cards:list[int] = []
+        self.possible_types:list[Hand] = []
     
     
     @Slot(QModelIndex)
-    def handle_item_selection(self, index):
-        selected_item_data: CardTypeBlock = index.data(Qt.DisplayRole)
+    def handle_item_selection(self, index: QModelIndex):
+        selected_item_data: CardTypeBlock = index.data(Qt.ItemDataRole.DisplayRole)
         if not selected_item_data.playable:
             return
         if self.is_choosing_eliminate:
@@ -186,7 +187,7 @@ class HandSelector(QObject):
             # get selected option
             selection_model = self.listView.selectionModel()
             #print(selection_model.currentIndex().row())
-            eliminateNumber = selection_model.currentIndex().data(Qt.DisplayRole).ui.card.text()
+            eliminateNumber = selection_model.currentIndex().data(Qt.ItemDataRole.DisplayRole).ui.card.text()
             if eliminateNumber == '不消除':
                 self.cardtypes[self.can_eliminate_index].hand.erased_card = None
                 self.cardtypes[self.can_eliminate_index].ui.eliminate.setText(f'可消除')
@@ -215,7 +216,7 @@ class HandSelector(QObject):
         
 
     @Slot(list)
-    def changeChooseCards(self, cards:list):
+    def changeChooseCards(self, cards:list[int]):
         # may be hide by eliminate function
         self.ui.submit.show()
         self.is_choosing_eliminate = False
@@ -240,8 +241,8 @@ class HandSelector(QObject):
         
 
     def setPlayableCard(self, replies: list[tuple[Hand, bool, str]]):
-        self.cardtypes: list[CardTypeBlock] = []
-        playable_indexes = []
+        self.cardtypes = []
+        playable_indexes: list[int] = []
         for i, (hand, playable, not_playable_reason) in enumerate(replies):
             hand.erased_card = None
 
@@ -273,7 +274,7 @@ class HandSelector(QObject):
                 self.ui.eliminate.hide()
             
 
-    def getSelectedCard(self) -> tuple[int, CardTypeBlock]:
+    def getSelectedCard(self) -> tuple[int, Optional[CardTypeBlock]]:
         selection_model = self.listView.selectionModel()
         selected_index = selection_model.currentIndex().row()
         if selected_index == -1:

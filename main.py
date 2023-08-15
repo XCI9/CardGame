@@ -8,7 +8,7 @@ from PlayAgainDialog_ui import Ui_Dialog as Ui_PlayAgainDialog
 from canva import Canva
 from utilities import *
 from hand import HandSelector, CardTypeBlock
-from client import NetworkHandler
+from client import ClientHandler
 from server import startServer
 from package import Package
 import socket
@@ -162,7 +162,7 @@ class MainWindow(QMainWindow):
 
         self.prev_hand = None
 
-        self.rule_info:list[tuple[int,QLabel, str]] = [(9, self.ui.rule9, '2壓1'),
+        self.rule_info:list[tuple[int, QLabel, str]] = [(9, self.ui.rule9, '2壓1'),
                                                        (19, self.ui.rule19, '3壓2'),
                                                        (29, self.ui.rule29, '3壓1')]
 
@@ -194,7 +194,7 @@ class MainWindow(QMainWindow):
         
         self.logger.log('connect', self.socket, '')
 
-        self.network_handler = NetworkHandler(self.socket, self.logger)
+        self.network_handler = ClientHandler(self.socket, self.logger)
         self.network_handler.response_playable.connect(self.hand_selector.setPlayableCard)
         self.network_handler.update_table.connect(self.updateTable)
         self.network_handler.init_card.connect(self.initCard)
@@ -248,7 +248,7 @@ class MainWindow(QMainWindow):
         self.prev_hand.deleteLater()
         self.prev_hand = None
 
-        if result == QDialog.Rejected:
+        if result == QDialog.DialogCode.Rejected:
             self.close()
 
     @Slot(str)

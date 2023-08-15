@@ -9,7 +9,7 @@ import struct
 HOST = "127.0.0.1"
 PORT = 8888
 
-class NetworkHandler(QThread):
+class ClientHandler(QThread):
     card_evaluate = Signal(list[Hand])
     update_table = Signal(Hand)
     init_card = Signal(list)
@@ -53,30 +53,3 @@ class NetworkHandler(QThread):
         self.socket.shutdown(socket.SHUT_RDWR)
         self.socket.close()
         self.connection_lose.emit()
-
-
-if __name__ == '__main__':
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-    sock.connect((HOST, PORT))
-    while True:
-        type = int(input("Please choose type:"))
-
-        match type:
-            case 1:
-                package = Package.PlayCard(evaluate_cards([1,10,11])[0])
-            case 2:
-                package = Package.PrevHand(evaluate_cards([1,10,11])[0])
-            case 3:
-                package = Package.InitCard([1,2,3,4,5,6,7,8,9,10])
-            case 4:
-                package = Package.GameOver('YuTse')
-            case 5:
-                package = Package.YourTurn(True)
-            case 6:
-                package = Package.ChkValid(evaluate_cards([1,10,11])[0])
-            case 7:
-                package = Package.ResValid(False)
-
-        data = pickle.dumps(package)
-        sock.sendall(data)

@@ -1,4 +1,4 @@
-test.py
-testgame.py
+test/
 __pycache__/
 exe/
+.vscode/

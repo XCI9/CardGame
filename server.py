@@ -71,7 +71,7 @@ class GameCore:
 
     def getCardCounts(self) -> list[int]:
         """Return cards count of each player"""
-        cards_count = []
+        cards_count:list[int] = []
         for player in self.core.players:
             cards_count.append((player.name, len(player.cards)))
 
@@ -85,7 +85,7 @@ class GameCore:
 
         return names
 
-    def evaluateHands(self, hands:Hand):
+    def evaluateHands(self, hands:list[Hand]):
         """Given hands, evaluate each hand and return the results"""
         results = []
         for hand in hands:
@@ -99,6 +99,7 @@ class GameCore:
         for i, player in enumerate(self.core.players):
             if player.his_turn:
                 return i
+        raise NotImplementedError
 
     def turn_forward(self, is_last_player_pass:bool):
         """Return the winner id if the game end, else return None"""
@@ -197,7 +198,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
     def updatePlayer(self):
         self.broadcastPackage(Package.GetPlayer(self.core.getPlayersName(),self.core.player_count))
 
-    def evaluateHands(self, hands:Hand):
+    def evaluateHands(self, hands:list[Hand]):
         package = Package.ResValid(self.core.evaluateHands(hands))
         self.sendPackage(self.request, package)
 
@@ -283,6 +284,7 @@ def startServer(host:str, port:int, player_count:int):
 if __name__ == '__main__':
     host = "127.0.0.1"
     port = 8888
+    player_count = 3
 
-    startServer(host, port)
+    startServer(host, port, player_count)
     input()  
