@@ -162,7 +162,7 @@ class MainWindow(QMainWindow):
 
         self.prev_hand = None
 
-        self.rule_info:list[tuple[int,QLabel, str]] = [(9, self.ui.rule9, '2壓1'),
+        self.rule_info:list[tuple[int, QLabel, str]] = [(9, self.ui.rule9, '2壓1'),
                                                        (19, self.ui.rule19, '3壓2'),
                                                        (29, self.ui.rule29, '3壓1')]
 
@@ -248,7 +248,7 @@ class MainWindow(QMainWindow):
         self.prev_hand.deleteLater()
         self.prev_hand = None
 
-        if result == QDialog.Rejected:
+        if result == QDialog.DialogCode.Rejected:
             self.close()
 
     @Slot(str)

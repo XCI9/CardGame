@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (QGraphicsScene,
                                QGraphicsItem)
 from PySide6.QtGui import QColor, QPen, QPixmap, QImage, QBrush, QFont
 from PySide6.QtCore import Qt, Signal, QEvent
+from typing import Optional
 
 class CardNumber(QGraphicsTextItem):
     def __init__(self, number, parent=None):
@@ -136,9 +137,9 @@ class PrivateCardPlacer:
         self.block_size = 10
         self.gap = int(2.5 * self.block_size)
 
-        self.slots: list[Card] = [None] * slot_count
+        self.slots: list[Optional[Card]] = [None] * slot_count
 
-    def setCard(self, index, card: Card= None):
+    def setCard(self, index, card: Optional[Card] = None):
         self.slots[index] = card
         if card is not None:
             card.setX(self.getSlotX(index))
@@ -147,10 +148,12 @@ class PrivateCardPlacer:
         #print(f'swap {index1} {index2}')
         self.slots[index1], self.slots[index2] = self.slots[index2], self.slots[index1]
         
-        if self.slots[index2] is not None:
-            self.slots[index2].changeX(self.getSlotX(index2))
-        if self.slots[index1] is not None:
-            self.slots[index1].changeX(self.getSlotX(index1))
+        slot1 = self.slots[index1]
+        slot2 = self.slots[index2]
+        if slot2 is not None:
+            slot2.changeX(self.getSlotX(index2))
+        if slot1 is not None:
+            slot1.changeX(self.getSlotX(index1))
     
     def insertCard(self, fromIndex:int, toIndex:int):
         if self.slots[toIndex] is None:
