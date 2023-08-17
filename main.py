@@ -11,12 +11,14 @@ from hand import HandSelector, CardTypeBlock
 from client import ClientHandler
 from server import startServer
 from package import Package
+from typing import Optional
 import socket
 import pickle
 import os
 import struct
 from logger import ConnectionLogger
 import winsound
+from game import PlayerUtility, GameCoreClient, PlayerUtilityRemote
 
 """
 The frame of this application
@@ -124,6 +126,8 @@ class MainWindow(QMainWindow):
 
         self.sound_path = os.environ['WINDIR'] + "\Media\Windows Battery Critical.wav"
 
+        self.core = GameCoreClient()
+
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
 
@@ -136,11 +140,10 @@ class MainWindow(QMainWindow):
 
         self.logger = ConnectionLogger('client')
 
-        self.hand_selector = HandSelector(self.ui, self.socket)
+        self.hand_selector = HandSelector(self.ui, self.core)
         self.hand_selector.sendPackage.connect(self.sendPackage)
         self.scene.chooseCardsChanged.connect(self.hand_selector.changeChooseCards)
         self.ui.submit.clicked.connect(self.playCard)
-        self.ui.eliminate.clicked.connect(self.chooseEliminate)
         self.ui.pass_.clicked.connect(self.pass_)
 
         self.network_handler = None
@@ -162,12 +165,11 @@ class MainWindow(QMainWindow):
 
         self.prev_hand = None
 
-        self.rule_info:list[tuple[int, QLabel, str]] = [(9, self.ui.rule9, '2壓1'),
-                                                       (19, self.ui.rule19, '3壓2'),
-                                                       (29, self.ui.rule29, '3壓1')]
+        self.rule_info:list[tuple[QLabel, str]] = [(self.ui.rule9, '2壓1'),
+                                                    (self.ui.rule19, '3壓2'),
+                                                    (self.ui.rule29, '3壓1')]
 
         self.ui.cannot_play_msg.hide()
-        self.ui.eliminate.hide()
 
     @Slot(Package.Package)
     def sendPackage(self, package:Package.Package):
@@ -195,30 +197,87 @@ class MainWindow(QMainWindow):
         self.logger.log('connect', self.socket, '')
 
         self.network_handler = ClientHandler(self.socket, self.logger)
-        self.network_handler.response_playable.connect(self.hand_selector.setPlayableCard)
-        self.network_handler.update_table.connect(self.updateTable)
-        self.network_handler.init_card.connect(self.initCard)
-        self.network_handler.your_turn.connect(self.setMyTurn)
-        self.network_handler.change_turn.connect(self.changeTurnName)
         self.network_handler.gameover.connect(self.gameover)
-        self.network_handler.update_cards_count.connect(self.updateCardCount)
         self.network_handler.update_players.connect(self.dialog.updatePlayers)
+        self.network_handler.sync_game.connect(self.syncGame)
         self.network_handler.connection_lose.connect(self.connectionLose)
+        self.network_handler.others_play_hand.connect(self.othersPlayerHand)
         self.network_handler.start()
 
         self.sendPackage(Package.SendName(self.dialog.ui.name.text()))
 
-    @Slot(list)
-    def initCard(self, cards):
+    @Slot(Hand, int)
+    def othersPlayerHand(self, hand:Hand, id: int):
+        player = self.core.players[id]
+        player.playHand(hand)
+
+        self.updateGameStatus()
+
+    @Slot(TableClassic, int)
+    def syncGame(self, table: TableClassic, id: int):
+        self.core.setup(table, id)
+
+        player_utility = self.core.current_player
+        player = player_utility.player
+        # reset status
         if self.gameover_dialog.isVisible():
             self.gameover_dialog.accept()
         self.scene.resetTable()
-        self.scene.initCard(cards)
+        self.scene.initCard(player.cards)
+
+        self.updateGameStatus()
+
+    def updateGameStatus(self):
+        player_utility = self.core.current_player
+        player = player_utility.player
+
+        self.ui.submit.setText('提交')
+        self.ui.submit.setEnabled(False)
+        self.ui.pass_.setEnabled(False)
+        if player.his_turn:
+            winsound.PlaySound(self.sound_path, winsound.SND_ALIAS)
+            self.ui.submit.setEnabled(True)
+            self.ui.turn_player_name.setText(f'目前輪到: 你')
+            if player_utility.for_erase:
+                self.ui.submit.setText('消除')
+            if player.lastplayed:
+                self.ui.pass_.setEnabled(True)
+
+        else:
+            self.ui.turn_player_name.setText(f'目前輪到:{self.core.table.get_player().name}')
+           
+        #self.hand_selector.refreshPlayableCard()
 
         # reset rule
-        for enable_rule_num, label, name in self.rule_info:
-            label.setText(f'{name}✘')
-            label.setStyleSheet('QLabel{color:#f00}')
+        for (label, name), enable in zip(self.rule_info, self.core.getRule()):
+            if enable:
+                label.setText(f'{name}✔')
+                label.setStyleSheet('QLabel{color:#22b14c}') # green
+            else:
+                label.setText(f'{name}✘')
+                label.setStyleSheet('QLabel{color:#f00}')
+
+        # update previous hand 
+        if self.prev_hand is not None:
+            self.ui.prev_hand.removeWidget(self.prev_hand)
+            self.prev_hand.deleteLater()
+        self.prev_hand = CardTypeBlock(True, self.core.table.previous_hand)
+        self.ui.prev_hand.addWidget(self.prev_hand)
+
+        #update card count
+        display_str = '剩餘牌數: '
+        for player in self.core.table.players:
+            name = player.name
+            count = len(player.cards)
+            if name != self.name:
+                display_str += f'{name}-{count} '
+        self.ui.card_count.setText(display_str)
+
+        #update current player
+        for player in self.core.table.players:
+            if player.his_turn:
+                self.ui.turn_player_name.setText(f'目前輪到: {player.name}')
+            
 
     def connectionLose(self):
         if self.dialog.isVisible():
@@ -242,7 +301,6 @@ class MainWindow(QMainWindow):
 
         self.ui.submit.setEnabled(False)
         self.ui.pass_.setEnabled(False)
-        self.ui.eliminate.hide()
 
         self.ui.prev_hand.removeWidget(self.prev_hand)
         self.prev_hand.deleteLater()
@@ -251,20 +309,12 @@ class MainWindow(QMainWindow):
         if result == QDialog.DialogCode.Rejected:
             self.close()
 
-    @Slot(str)
-    def changeTurnName(self, name:str):
-        self.ui.turn_player_name.setText(f'目前輪到: {name}')
-        self.hand_selector.refreshPlayableCard()
-
-    @Slot()
-    def chooseEliminate(self):
-        self.hand_selector.chooseEliminate(self.scene.slot)
-
     @Slot()
     def pass_(self):
         self.ui.cannot_play_msg.hide()
 
-        self.sendPackage(Package.PlayCard(None))
+        self.sendPackage(Package.PlayCard(-1, None))
+        self.core.passTurn()
 
         self.ui.submit.setEnabled(False)
         self.ui.pass_.setEnabled(False)
@@ -282,60 +332,16 @@ class MainWindow(QMainWindow):
 
         self.ui.cannot_play_msg.hide()
 
-        # remove played card from hand
-        if card_type.hand.erased_card is not None:
-            self.scene.removeCard(card_type.hand.erased_card)
-        self.scene.removeCards(hand.card)
-
         # put played card onto table
-        self.sendPackage(Package.PlayCard(hand))
+        self.sendPackage(Package.PlayCard(-1, hand))
+        self.core.playHand(selected_index)
 
-        self.hand_selector.clearChoose()
-        self.ui.submit.setEnabled(False)
-        self.ui.pass_.setEnabled(False)
-        self.ui.eliminate.hide()
-
-    @Slot(Hand)
-    def updateTable(self, hand: Hand):
         for card in hand.card:
             self.scene.playCard(card)
+        self.scene.removeCards(hand.card)
 
-        if hand.erased_card is not None:
-            self.scene.playCard(hand.erased_card)
+        self.updateGameStatus()
 
-        # update previous hand 
-        if self.prev_hand is not None:
-            self.ui.prev_hand.removeWidget(self.prev_hand)
-            self.prev_hand.deleteLater()
-        self.prev_hand = CardTypeBlock(True, hand)
-        self.ui.prev_hand.addWidget(self.prev_hand)
-
-        #update rule hint
-        for enable_rule_num, label, name in self.rule_info:
-            disable_rule_num = enable_rule_num - 1
-            if enable_rule_num in hand.card:
-                label.setText(f'{name}✔')
-                label.setStyleSheet('QLabel{color:#22b14c}') # green
-            if disable_rule_num in hand.card:
-                label.setText(f'{name}✘')
-                label.setStyleSheet('QLabel{color:#f00}')
-
-    @Slot(bool)
-    def setMyTurn(self, is_forced: bool):
-        self.ui.submit.setEnabled(True)
-        self.ui.turn_player_name.setText(f'目前輪到: 你')
-        winsound.PlaySound(self.sound_path, winsound.SND_ALIAS)
-        self.hand_selector.refreshPlayableCard()
-        if not is_forced:
-            self.ui.pass_.setEnabled(True)
-
-    @Slot(list)
-    def updateCardCount(self, cards_count:list):
-        display_str = '剩餘牌數: '
-        for name, count in cards_count:
-            if name != self.name:
-                display_str += f'{name}-{count} '
-        self.ui.card_count.setText(display_str)
 
     def terminate(self):
         if self.socket.fileno() != -1:

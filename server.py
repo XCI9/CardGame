@@ -6,6 +6,9 @@ from utilities import *
 import threading
 import struct
 from logger import ConnectionLogger
+from game import GameCoreServer, PlayerUtilityServer
+from copy import deepcopy
+from typing import Optional
 
 class GameCore:
     def __init__(self):
@@ -117,12 +120,12 @@ class GameCore:
 
 class ServerHandler(socketserver.BaseRequestHandler):
     clients:list[socket.socket] = []
-    core = GameCore()
+    core = GameCoreServer()
     logger = ConnectionLogger('server')
     init = False
 
     def setPlayerCount(self, count: int):
-        self.core.player_count = count
+        self.core.max_player_count = count
 
     def sendPackage(self, client:socket.socket, package: Package.Package):
         #print(f'send package: {package}')
@@ -137,12 +140,27 @@ class ServerHandler(socketserver.BaseRequestHandler):
             self.sendPackage(client, package)
 
     def broadcastPackageExcept(self, package: Package.Package, 
-                               except_id :int, except_package: Package.Package):
+                               except_id :int, except_package: Optional[Package.Package] = None):
         for id, client in enumerate(self.clients):
             if id == except_id:
-                self.sendPackage(client, except_package)
+                if except_package is not None:
+                    self.sendPackage(client, except_package)
             else:
                 self.sendPackage(client, package)
+
+    def syncGame(self):
+        for id, client in enumerate(self.clients):
+            self.syncGameTo(id)
+
+    def syncGameTo(self, player_id:int):
+        id = player_id
+
+        table = deepcopy(self.core.table)
+        for i in range(len(table.players)):
+            if i != id:
+                table.players[i].cards = [-1] * len(table.players[i].cards)
+        package = Package.SyncGame(table,id)
+        self.sendPackage(self.clients[id], package)
 
     def startGame(self):
         success = self.core.start()
@@ -150,25 +168,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
         if not success:
             return success
         
-        for id, client in enumerate(self.clients):
-            package = Package.InitCard(self.core.getPlayerById(id).cards)
-            self.sendPackage(client, package)
-
-        #time.sleep(0.1)
-        self.updateCardCount()
-        self.notifyNextTurnPlayer()
-
-    def notifyNextTurnPlayer(self):
-        next_turn_id = self.core.getNextTurnPlayer()
-        next_turn_player = self.core.getPlayerById(next_turn_id)
-
-        self.broadcastPackageExcept(Package.ChangeTurn(next_turn_player.name), 
-                                    next_turn_id, Package.YourTurn(next_turn_player.lastplayed))
-
-    def updateCardCount(self):
-        cards_count = self.core.getCardCounts()
-
-        self.broadcastPackage(Package.CardLeft(cards_count))
+        self.syncGame()
 
     def gameover(self, winner_id: int):
         winner = self.core.getPlayerById(winner_id)
@@ -178,29 +178,20 @@ class ServerHandler(socketserver.BaseRequestHandler):
             self.core.allow_start[i] = False
 
     def playHand(self, player_id: int, hand:Hand):
-        if hand is not None:
-            self.core.playHand(player_id, hand)
+        if hand is None:
+            success = self.core.passTurn(player_id)
+        else:
+            success = self.core.playHand(player_id, hand)
+            
+        if not success:
+            self.syncGameTo(player_id)
+            return
 
-            # update table for all player
-            self.broadcastPackage(Package.PrevHand(hand))
-
-        winner_id = self.core.turn_forward(hand is not None)
-
-        # game end
-        if winner_id is not None:
-            self.gameover(winner_id)
-
-        self.notifyNextTurnPlayer()
-
-        # update card of each player
-        self.updateCardCount()
+        # update table for all player
+        self.broadcastPackageExcept(Package.PlayCard(player_id, hand), player_id)
 
     def updatePlayer(self):
-        self.broadcastPackage(Package.GetPlayer(self.core.getPlayersName(),self.core.player_count))
-
-    def evaluateHands(self, hands:list[Hand]):
-        package = Package.ResValid(self.core.evaluateHands(hands))
-        self.sendPackage(self.request, package)
+        self.broadcastPackage(Package.GetPlayer(self.core.getPlayersName(), self.core.max_player_count))
 
     def closeConnection(self, player_id:int, reason:str):
         self.logger.log('disconnect', self.request, reason)
@@ -266,7 +257,6 @@ class ServerHandler(socketserver.BaseRequestHandler):
 
             match package:
                 case Package.PlayCard(): self.playHand(player_id, package.hand)
-                case Package.ChkValid(): self.evaluateHands(package.hands)
                 case Package.SendName(): self.initPlayerName(player_id, package.name)
                 case Package.AgainChk(): self.againCheck(player_id, package.agree)
                 case _:                  raise NotImplementedError

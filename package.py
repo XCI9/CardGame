@@ -4,43 +4,25 @@ from dataclasses import dataclass
 
 class Package:
     class Package:
-        pass
+        hash: int
 
     @dataclass(init=True)
     class PlayCard(Package):
-        hand :Hand
-
-    @dataclass(init=True)
-    class PrevHand(Package):
+        id: int
         hand: Hand
 
     @dataclass(init=True)
-    class CardLeft(Package):
-        cards_count: list[tuple[str,int]]
+    class PlayErase(Package):
+        card: int
 
     @dataclass(init=True)
-    class InitCard(Package):
-        cards: list
+    class SyncGame(Package):
+        table: TableClassic
+        id: int
 
     @dataclass(init=True)
     class GameOver(Package):
         winner: str
-
-    @dataclass(init=True)
-    class YourTurn(Package):
-        force: bool
-
-    @dataclass(init=True)
-    class ChangeTurn(Package):
-        name: str
-
-    @dataclass(init=True)
-    class ChkValid(Package):
-        hands: list[Hand]
-
-    @dataclass(init=True)
-    class ResValid(Package):
-        replies: list[tuple[Hand, bool, str]] # Hand is_valid not_valid_reason
 
     @dataclass(init=True)
     class SendName(Package):
@@ -54,3 +36,7 @@ class Package:
     @dataclass(init=True)
     class AgainChk(Package):
         agree: bool
+
+    @dataclass(init=True)
+    class SyncReq(Package):
+        pass

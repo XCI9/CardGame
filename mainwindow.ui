@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1018</width>
+    <width>1022</width>
     <height>509</height>
    </rect>
   </property>
@@ -98,13 +98,6 @@
        </property>
        <property name="checkable">
         <bool>false</bool>
-       </property>
-      </widget>
-     </item>
-     <item>
-      <widget class="QPushButton" name="eliminate">
-       <property name="text">
-        <string>消除</string>
        </property>
       </widget>
      </item>
@@ -251,7 +244,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1018</width>
+     <width>1022</width>
      <height>22</height>
     </rect>
    </property>

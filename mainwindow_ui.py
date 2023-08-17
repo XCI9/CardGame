@@ -23,7 +23,7 @@ class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(1018, 509)
+        MainWindow.resize(1022, 509)
         self.centralwidget = QWidget(MainWindow)
         self.centralwidget.setObjectName(u"centralwidget")
         self.canva = QGraphicsView(self.centralwidget)
@@ -60,11 +60,6 @@ class Ui_MainWindow(object):
         self.submit.setCheckable(False)
 
         self.horizontalLayout.addWidget(self.submit)
-
-        self.eliminate = QPushButton(self.horizontalLayoutWidget)
-        self.eliminate.setObjectName(u"eliminate")
-
-        self.horizontalLayout.addWidget(self.eliminate)
 
         self.rule29 = QLabel(self.centralwidget)
         self.rule29.setObjectName(u"rule29")
@@ -107,7 +102,7 @@ class Ui_MainWindow(object):
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QMenuBar(MainWindow)
         self.menubar.setObjectName(u"menubar")
-        self.menubar.setGeometry(QRect(0, 0, 1018, 22))
+        self.menubar.setGeometry(QRect(0, 0, 1022, 22))
         MainWindow.setMenuBar(self.menubar)
 
         self.retranslateUi(MainWindow)
@@ -120,7 +115,6 @@ class Ui_MainWindow(object):
         self.cannot_play_msg.setText(QCoreApplication.translate("MainWindow", u"\u8acb\u5148\u9078\u8981\u6253\u51fa\u7684\u724c!", None))
         self.pass_.setText(QCoreApplication.translate("MainWindow", u"Pass", None))
         self.submit.setText(QCoreApplication.translate("MainWindow", u"\u6253\u51fa", None))
-        self.eliminate.setText(QCoreApplication.translate("MainWindow", u"\u6d88\u9664", None))
         self.rule29.setText(QCoreApplication.translate("MainWindow", u"3\u58d31\u2718", None))
         self.rule19.setText(QCoreApplication.translate("MainWindow", u"3\u58d32\u2718", None))
         self.rule9.setText(QCoreApplication.translate("MainWindow", u"2\u58d31\u2718", None))

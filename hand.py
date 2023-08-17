@@ -10,26 +10,30 @@ from canva import PrivateCardPlacer
 from utilities import *
 import socket
 from typing import Optional
+from game import GameCoreClient
 
 class CardTypeBlock(QWidget):
-    def __init__(self, playable = True, hand: Optional[Hand] = None, need_erased_1 = False, parent=None):
+    def __init__(self, playable = True, hand: Optional[Hand] = None, is_erased = False, parent=None):
         super().__init__(parent)
 
         self.hand = hand
-        self.need_erased_1 = need_erased_1
+        self.is_erased = is_erased
         self.playable = playable
         self.ui = CardTypeForm()
         self.ui.setupUi(self)
         self.ui.cannot_play_reason.hide()
 
         # set displayed info
-        if hand is not None:
-
+        if hand is not None and len(hand.card) > 0:
             # "<N> [<N> <N>]"
             card_number_str = ''
             for number in hand.card:
                 card_number_str += f'{number} '
             card_number_str = card_number_str[:-1] # remove last space
+
+            if self.is_erased:
+                self.ui.card.setText('消除牌')
+                return
 
             match hand.rank:
                 case 'void3' | 'rare triple' | 'triple':
@@ -56,8 +60,6 @@ class CardTypeBlock(QWidget):
                 else:
                     self.ui.value.setText(f'{hand.value}')
             self.ui.eliminate.setText('可消除' if hand.eraseable else '')
-            if self.hand.erased_card is not None:
-                self.ui.eliminate.setText(f'消除{self.hand.erased_card}')
 
 class CardTypeDelegate(QStyledItemDelegate):
     def __init__(self, listView: QListView, parent=None):
@@ -102,11 +104,11 @@ class CardListModel(QAbstractListModel):
 class HandSelector(QObject):
     sendPackage = Signal(Package.Package)
 
-    def __init__(self, ui: Ui_MainWindow, sock: socket.socket):
+    def __init__(self, ui: Ui_MainWindow, core: GameCoreClient):
         super().__init__()
         self.ui = ui
         self.listView = ui.card_selector
-        self.socket = sock
+        self.core = core
 
         self.listView.setSelectionMode(QListView.SelectionMode.SingleSelection)
         self.listView.setSelectionBehavior(QListView.SelectionBehavior.SelectRows)
@@ -137,141 +139,34 @@ class HandSelector(QObject):
             return
         if self.is_choosing_eliminate:
             return
-        
-        if selected_item_data.hand.eraseable and not selected_item_data.need_erased_1:
-            self.ui.eliminate.show()
-        else:
-            self.ui.eliminate.hide()
 
         selection_model = self.listView.selectionModel()
         self.selected_index = selection_model.currentIndex().row()
         #print("Selected index:", self.selected_index)
-
-    def chooseEliminate(self, slot:PrivateCardPlacer):
-        if not self.is_choosing_eliminate:
-            self.can_eliminate_index = self.selected_index
-
-            self.ui.submit.hide()
-            self.ui.eliminate.setText('選擇')
-            cardtypes = []
-            
-            cardtype = CardTypeBlock()
-            cardtype.ui.card.setText(f'不消除')
-            cardtype.ui.type.setText('')
-            cardtype.ui.value.setText('')
-            cardtype.ui.eliminate.setText('')
-            cardtypes.append(cardtype)
-
-            current_selected_index = 0
-            for card in slot.slots:
-                
-                if card is not None and \
-                   card.getCardNumber() not in self.cardtypes[self.selected_index].hand.card:
-                    card_number = card.getCardNumber()
-                    cardtype = CardTypeBlock()
-                    cardtype.ui.card.setText(f'{card_number}')
-                    cardtype.ui.type.setText('')
-                    cardtype.ui.value.setText('')
-                    cardtype.ui.eliminate.setText('')
-                    cardtypes.append(cardtype)
-
-                    if card_number == self.cardtypes[self.selected_index].hand.erased_card:
-                        current_selected_index = len(cardtypes) - 1
-
-            data_model = CardListModel(cardtypes)
-            self.listView.setModel(data_model)
-            self.listView.setCurrentIndex(data_model.index(current_selected_index, 0))
-
-            self.is_choosing_eliminate = True
-        else:
-            # get selected option
-            selection_model = self.listView.selectionModel()
-            #print(selection_model.currentIndex().row())
-            eliminateNumber = selection_model.currentIndex().data(Qt.ItemDataRole.DisplayRole).ui.card.text()
-            if eliminateNumber == '不消除':
-                self.cardtypes[self.can_eliminate_index].hand.erased_card = None
-                self.cardtypes[self.can_eliminate_index].ui.eliminate.setText(f'可消除')
-            else:
-                eliminateNumber = int(eliminateNumber)
-                self.cardtypes[self.can_eliminate_index].hand.erased_card = eliminateNumber
-                self.cardtypes[self.can_eliminate_index].ui.eliminate.setText(f'消除{eliminateNumber}')
-
-            self.listView.setModel(self.data_model)
-            self.listView.setCurrentIndex(self.data_model.index(self.can_eliminate_index, 0))
-            self.is_choosing_eliminate = False
-            self.ui.submit.show()
-            self.ui.eliminate.setText('消除')
-
-    def refreshPlayableCard(self):
-        self.data_model = CardListModel([])
-        self.listView.setModel(self.data_model)
-
-        possible_types = evaluate_cards(self.choose_cards)
-        self.ui.eliminate.hide()
-        self.is_choosing_eliminate = False
-
-        self.sendPackage.emit(Package.ChkValid(possible_types))
-
-        self.possible_types = possible_types
-        
+       
 
     @Slot(list)
     def changeChooseCards(self, cards:list[int]):
-        # may be hide by eliminate function
-        self.ui.submit.show()
-        self.is_choosing_eliminate = False
+        self.core.selectCards(cards)
+        player_utility = self.core.current_player
 
-        self.choose_cards = cards
-        possible_types = evaluate_cards(cards)
-        #print(possible_types)
-        self.ui.eliminate.hide()
 
-        if possible_types == self.possible_types:
-            return
-
-        # update directly if there is impossible to have any card type
-        if len(possible_types) == 0 or len(possible_types) >= 4:
-            self.data_model = CardListModel([])
-            self.listView.setModel(self.data_model)
-        else:
-            self.sendPackage.emit(Package.ChkValid(possible_types))
-
-        self.possible_types = possible_types
-
-        
-
-    def setPlayableCard(self, replies: list[tuple[Hand, bool, str]]):
         self.cardtypes = []
         playable_indexes: list[int] = []
-        for i, (hand, playable, not_playable_reason) in enumerate(replies):
-            hand.erased_card = None
-
-            # 1 can also be erased
-            if not playable and not_playable_reason == '首家需要打出1' and hand.eraseable:
-                hand.erased_card = 1
-                cardtype = CardTypeBlock(True, hand, need_erased_1=True)
+        for i, (hand, not_playable_reason) in enumerate(zip(player_utility.avalhands, player_utility.avalhands_info)):
+            cardtype = CardTypeBlock(True, hand, self.core.current_player.for_erase)
+            if not_playable_reason == 'playable':
                 playable_indexes.append(i)
             else:
-                cardtype = CardTypeBlock(playable, hand)
-                if not playable:
-                    cardtype.setStyleSheet('QLabel{color:#999}')
-                    cardtype.ui.cannot_play_reason.setText(not_playable_reason)
-                    cardtype.ui.cannot_play_reason.show()
-                    cardtype.ui.eliminate.hide()
-                else:
-                    playable_indexes.append(i)
+                cardtype.setStyleSheet('QLabel{color:#999}')
+                cardtype.ui.cannot_play_reason.setText(not_playable_reason)
             self.cardtypes.append(cardtype)
+
 
         self.data_model = CardListModel(self.cardtypes)  # Example data
         self.listView.setModel(self.data_model)
         if len(playable_indexes) == 1:
             self.listView.setCurrentIndex(self.data_model.index(playable_indexes[0], 0))
-
-            selected_data = self.cardtypes[playable_indexes[0]]
-            if selected_data.hand.eraseable and not selected_data.need_erased_1:
-                self.ui.eliminate.show()
-            else:
-                self.ui.eliminate.hide()
             
 
     def getSelectedCard(self) -> tuple[int, Optional[CardTypeBlock]]:
