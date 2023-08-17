@@ -210,6 +210,8 @@ class MainWindow(QMainWindow):
     def othersPlayerHand(self, hand:Hand, id: int):
         player = self.core.players[id]
         player.playHand(hand)
+        for card in hand.card:
+            self.scene.playCard(card)
 
         self.updateGameStatus()
 
@@ -223,6 +225,8 @@ class MainWindow(QMainWindow):
         if self.gameover_dialog.isVisible():
             self.gameover_dialog.accept()
         self.scene.resetTable()
+        for card in self.core.table.cards:
+            self.scene.playCard(card)
         self.scene.initCard(player.cards)
 
         self.updateGameStatus()
