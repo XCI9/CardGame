@@ -7,8 +7,8 @@ class PlayerUtility:
         self.player = player
         self.for_erase = False
         # UI
-        self.avalhands = []
-        self.avalhands_info = []
+        self.avalhands:list[Hand] = []
+        self.avalhands_info:list[str] = []
     def update_handsinfo(self):
         """Update information about hands, avaliable and playable.
 
@@ -19,18 +19,19 @@ class PlayerUtility:
         """
         self.avalhands = []
         self.avalhands_info = []
-        avalhands = evaluate_cards(self.select_cards)
+        avalhands = evaluate_cards(self.player.selected_cards)
         for avalhand in avalhands:
             playable, info = self.table.is_playable_hand(avalhand)
             if playable:
                 self.avalhands_info.append('playable')
             else:
                 self.avalhands_info.append(info)
-    def select_cards(self, cards: tuple) -> bool:
+    def select_cards(self, cards: list[int]) -> bool:
         """Call this function when a player change selected cards."""
         if any(card not in self.player.cards for card in cards):
             return False
         self.player.selected_cards = cards
+        self.player.selected_hand = None
         if not self.for_erase:
             self.update_handsinfo()
         return True
@@ -53,21 +54,21 @@ class PlayerUtility:
     def play_hand(self) -> bool:
         """Call this method when a player press '打出'."""
         hand_tbp = self.player.selected_hand
-        if hand_tbp == None:
+        if hand_tbp is None:
             return False
         self.table.play_hand(hand_tbp)
         self.player.remove_cards(hand_tbp.card)
         if not hand_tbp.eraseable:
             self.table.turn_forward(played_hand=True)
         else:
-            pass
+            self.for_erase = True
         return True
     def play_erase(self) -> bool:
         """Call this method when a player press '消除'."""
-        if len(self.player.selected_cards) != 1:
+        if self.player.selected_cards is not None and len(self.player.selected_cards) != 1:
             return False
         card_tbp = self.player.selected_cards[0]
-        if self.table.turn == 1 and 1 not in self.table:
+        if self.table.turn == 1 and 1 not in self.table.cards:
             if card_tbp != 1:
                 return False
         self.table.erase(card_tbp)

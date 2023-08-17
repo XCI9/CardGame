@@ -21,7 +21,7 @@ Player -- A game player.
 
 from collections import Counter
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Optional
 import random
 __all__ = [
     'Hand',
@@ -41,7 +41,7 @@ class Hand():
     suit: int = -1
     eraseable: bool = False
 
-    def __gt__(self, other) -> bool:
+    def __gt__(self, other: "Hand") -> bool:
         if ind_higher_ranking(self, other) == 1:
             return True
         elif ind_higher_ranking(self, other) == 2:
@@ -58,20 +58,20 @@ class Hand():
                     return False
                 else:
                     return False
-    def __eq__(self, other) -> bool:
+    def __eq__(self, other: "Hand") -> bool:
         if (ind_higher_ranking(self, other) == 0 and
             self.value == other.value and
             self.suit == other.suit):
             return True
         else:
             return False
-    def __lt__(self, other) -> bool:
+    def __lt__(self, other: "Hand") -> bool:
         return not (self.__eq__(other) or self.__gt__(other))
-    def __le__(self, other):
+    def __le__(self, other: "Hand"):
         return (self.__eq__(other) or self.__lt__(other))
-    def __ge__(self, other):
+    def __ge__(self, other: "Hand"):
         return (self.__eq__(other) or self.__gt__(other))
-    def __len__(self) -> bool:
+    def __len__(self) -> int:
         return len(self.card)
 
 # First element has highest rank, last one has lowest rank.
@@ -139,7 +139,7 @@ def evaluate_cards(cards: tuple[int] | list[int]) -> list[Hand]:
     reprc.sort()
     cards.sort()
 
-    avaliable = []
+    avaliable:list[Hand] = []
     if len(cards) == 3:
         ####  triangle  ####
         if cards[0]**2 + cards[1]**2 == cards[2]**2:
@@ -238,7 +238,7 @@ class Player:
     cards : list[int]
         The cards player has.
     selected_cards : list[int]
-        The cards that plater selected.
+        The cards that player selected.
     lastplayed : bool
         If all other players choose to pass their turn after a player 
         has played a hand, that player can play any hand on to the tabel
@@ -252,9 +252,9 @@ class Player:
     """
     def __init__(self, name = 'None') -> None:
         self.name = name
-        self.cards:list[Player] = []
-        self.selected_cards = []
-        self.selected_hand: Hand = []
+        self.cards:list[int] = []
+        self.selected_cards:list[int] = []
+        self.selected_hand: Optional[Hand] = None
         self.lastplayed = False
         self.his_turn = False
         self.in_game = False
@@ -313,7 +313,7 @@ class TableClassic(Table):
     empty_previous_hand -- Make previous played hand empty.
     """
     def __init__(self) -> None:
-        self.cards = []
+        self.cards:list[int] = []
         self.players: list[Player] = []
         self.previous_hand = Hand((), 'None', -1, -1)
         self.turn = 0
@@ -330,7 +330,7 @@ class TableClassic(Table):
                  + f"rule 9/19/29 : {self.rule9}/{self.rule19}/{self.rule29}"
         )
         return string
-    def join(self, player) -> bool:
+    def join(self, player:Player) -> bool:
         """Make a player join this table, return False for join denied."""
         if len(self.players) == 3:
             return False
@@ -374,7 +374,7 @@ class TableClassic(Table):
         self.turn = 1
         return True
 
-    def is_playable_hand(self, newhand: Hand) -> tuple:
+    def is_playable_hand(self, newhand: Hand) -> tuple[bool, str]:
         """Evaluate whether a hand is playable now.
         
         Returns
@@ -436,6 +436,7 @@ class TableClassic(Table):
             if not self.players[prev_holder].in_game:
                 prev_holder = (num_player + prev_holder - 1) % num_player
             return self.players[prev_holder]
+        raise NotImplementedError
 
     def turn_forward(self, played_hand: bool) -> None:
         """Make turn forward. check whether active player wins.
