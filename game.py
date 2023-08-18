@@ -5,11 +5,92 @@ from utilities import TableClassic
 
 
 class PlayerUtility:
+    """A panel for player in serve, used as checking and sync."""
     def __init__(self, player: Player, table: TableClassic) -> None:
-        self.table = table
         self.player = player
+        self.table = table
+    def pass_turn(self) -> bool:
+        """A player pass his turn.
+        
+        It will check wheter a player is allowed to pass his turn.
+        """
+        if self.player.lastplayed:
+            return False
+        else:
+            self.table.turn_forward(played_hand=False)
+            return True
+    def play_hand(self, hand: Hand) -> bool:
+        """A player plays a hand on to table.
+        
+        It checks whether the timing is right, 
+        checks wheter a player has those cards,
+        and checks if the hand is playable.
+        """
+        cards_tbp = hand.card
+        if self.for_erase:
+            return False
+        if any(card not in self.player.cards for card in cards_tbp):
+            return False
+        if not self.table.is_playable_hand(hand):
+            return False
+        self.table.play_hand(hand)
+        self.player.remove_cards(cards_tbp)
+        if not hand.eraseable:
+            self.table.turn_forward(played_hand=True)
+        else:
+            self.for_erase = True
+        return True
+    def play_erase(self, card: int) -> bool:
+        """A player erase a card.
+        
+        For turn 1, it checks whether it is allowed to erase a card.
+        """
+        if not self.for_erase:
+            return False
+        if self.table.turn == 1 and 1 not in self.table.cards:
+            if card != 1:
+                return False
+        self.table.erase(card)
+        self.table.turn_forward(played_hand=True)
+        self.player.remove_cards([card])
         self.for_erase = False
-        # UI
+        return True
+
+class RemotePlayerUtility:
+    """An panle for remote players (every other playes)."""
+    def __init__(self, player: Player, table: TableClassic) -> None:
+        self.player = player
+        self.table = table
+    def play_hand(self, hand: Hand) -> bool:
+        """A remote player play a hand.
+        
+        Play a hand on to table, with no checking.
+        """
+        self.player.remove_cards([-1 for card in hand.card])
+        self.table.play_hand(hand)
+        if not hand.eraseable:
+            self.table.turn_forward(played_hand=True)
+        return True
+    def play_erase(self, card: int):
+        """A remote player play a erase card.
+        
+        Erase a card onto table, with no checking.
+        """
+        self.player.remove_cards([-1])
+        self.table.erase(card)
+        self.table.turn_forward(played_hand=True)
+        return True
+    def pass_turn(self) -> bool:
+        """A remote player pass his turn.
+        
+        Make turn forward, with no checking.
+        """
+        self.table.turn_forward(played_hand=False)
+        return True
+
+class LocalPlayerUtility(PlayerUtility):
+    def __init__(self, player: Player, table: TableClassic) -> None:
+        super().__init__(player, table)
         self.avalhands:list[Hand] = []
         self.avalhands_info:list[str] = []
     def update_handsinfo(self):
@@ -31,94 +112,18 @@ class PlayerUtility:
             else:
                 self.avalhands_info.append(info)
     def select_cards(self, cards: list[int]) -> bool:
-        """Call this function when a player change selected cards."""
+        """Call this function when a player change selected cards.
+        
+        It checks wheter a player have the selected cards in hand,
+        then update hands info.
+        """
         if any(card not in self.player.cards for card in cards):
             return False
         self.player.selected_cards = cards
-        self.player.selected_hand = None
         if not self.for_erase:
             self.update_handsinfo()
         return True
-    
-    def select_hand(self, index: int) -> bool:
-        """Call this function when a player select a hand.
-        Argument: index, int
-            index to acess `self.avalhands` and `self.avalhands_info`.
-        """
-        if not self.avalhands_info[index] == 'playable':
-            return False
-        self.player.selected_hand = self.avalhands[index]
-        return True
 
-    def pass_turn(self) -> bool:
-        """Call this method when a player press 'pass'"""
-        if self.player.lastplayed:
-            return False
-        self.table.turn_forward(played_hand=False)
-        return True
-       
-    def play_hand2(self, hand: Hand) -> bool:
-        cards = hand.card
-        if self.for_erase:
-            return False
-
-        if any(card not in self.player.cards for card in cards):
-            return False
-        
-        if not self.table.is_playable_hand(hand):
-            return False
-        
-        self.table.play_hand(hand)
-        self.player.remove_cards(cards)
-
-        if not hand.eraseable:
-            self.table.turn_forward(played_hand=True)
-        else:
-            self.for_erase = True
-        return True
-    
-    def play_hand(self) -> bool:
-        """Call this method when a player press '打出'."""
-        hand_tbp = self.player.selected_hand
-        if hand_tbp is None:
-            return False
-        self.table.play_hand(hand_tbp)
-        self.player.remove_cards(hand_tbp.card)
-        if not hand_tbp.eraseable:
-            self.table.turn_forward(played_hand=True)
-        else:
-            self.for_erase = True
-        return True
-    
-    def play_erase2(self, hand:Hand) -> bool:
-        """Call this method when a player press '消除'."""
-        if len(hand.card) != 1:
-            return False
-        if not self.for_erase:
-            return False
-        card_tbp = hand.card[0]
-        if self.table.turn == 1 and 1 not in self.table.cards:
-            if card_tbp != 1:
-                return False
-        self.table.erase(card_tbp)
-        self.table.turn_forward(played_hand=True)
-        self.player.remove_cards([card_tbp])
-        self.for_erase = False
-        return True
-    
-    def play_erase(self) -> bool:
-        """Call this method when a player press '消除'."""
-        if self.player.selected_cards is not None and len(self.player.selected_cards) != 1:
-            return False
-        card_tbp = self.player.selected_cards[0]
-        if self.table.turn == 1 and 1 not in self.table.cards:
-            if card_tbp != 1:
-                return False
-        self.table.erase(card_tbp)
-        self.table.turn_forward(played_hand=True)
-        self.player.remove_cards([card_tbp])
-        self.for_erase = False
-        return True
 
 class GameCoreServer: 
     def __init__(self) -> None:
@@ -128,12 +133,12 @@ class GameCoreServer:
         self.winner = None
         
         self.max_player_count = 3
-        self.allow_start:list[bool] = []
+        self.allow_start: list[bool] = []
 
     def start(self):
         self.winner = None
         return self.table.start()
-    
+
     def getPlayersName(self) -> list[str]:
         """Return all exists players' name"""
         names = []
@@ -145,7 +150,7 @@ class GameCoreServer:
     def getPlayerById(self, id:int) -> Player:
         """Return player object given id"""
         return self.table.players[id]
-    
+
     def getNextTurnPlayer(self) -> int:
         """Return next player id, should be called after turn_forward """
         for i, player in enumerate(self.table.players):
@@ -161,7 +166,7 @@ class GameCoreServer:
 
         self.table.players[player_id].name = name
         return True
-    
+
     def isPlayerFull(self) -> bool:
         """Return if the game is full and so cannot join new player"""
         return len(self.table.players) == self.max_player_count
@@ -170,13 +175,13 @@ class GameCoreServer:
         """Return player id if join success, -1 if failed"""
         player = Player()
         accept = self.table.join(player)
-                
+
         if accept:
             self.allow_start.append(True)
             self.players.append(PlayerUtility(player, self.table))
             return len(self.table.players) - 1
         return -1
-    
+
     def leave(self, player_index: int):
         """Delete the player from the game"""
         del self.table.players[player_index]
