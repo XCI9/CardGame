@@ -349,6 +349,8 @@ class MainWindow(QMainWindow):
             self.scene.playCard(card)
         self.scene.removeCards(hand.card)
 
+        self.hand_selector.clearChoose()
+
         self.updateGameStatus()
 
 
