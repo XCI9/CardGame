@@ -1,6 +1,6 @@
 from utilities import *
 from typing import Callable, Optional
-
+from functools import singledispatchmethod
 from utilities import TableClassic
 
 
@@ -39,6 +39,7 @@ class PlayerUtility:
         if not self.for_erase:
             self.update_handsinfo()
         return True
+    
     def select_hand(self, index: int) -> bool:
         """Call this function when a player select a hand.
         Argument: index, int
@@ -55,6 +56,27 @@ class PlayerUtility:
             return False
         self.table.turn_forward(played_hand=False)
         return True
+       
+    def play_hand2(self, hand: Hand) -> bool:
+        cards = hand.card
+        if self.for_erase:
+            return False
+
+        if any(card not in self.player.cards for card in cards):
+            return False
+        
+        if not self.table.is_playable_hand(hand):
+            return False
+        
+        self.table.play_hand(hand)
+        self.player.remove_cards(cards)
+
+        if not hand.eraseable:
+            self.table.turn_forward(played_hand=True)
+        else:
+            self.for_erase = True
+        return True
+    
     def play_hand(self) -> bool:
         """Call this method when a player press '打出'."""
         hand_tbp = self.player.selected_hand
@@ -67,6 +89,23 @@ class PlayerUtility:
         else:
             self.for_erase = True
         return True
+    
+    def play_erase2(self, hand:Hand) -> bool:
+        """Call this method when a player press '消除'."""
+        if len(hand.card) != 1:
+            return False
+        if not self.for_erase:
+            return False
+        card_tbp = hand.card[0]
+        if self.table.turn == 1 and 1 not in self.table.cards:
+            if card_tbp != 1:
+                return False
+        self.table.erase(card_tbp)
+        self.table.turn_forward(played_hand=True)
+        self.player.remove_cards([card_tbp])
+        self.for_erase = False
+        return True
+    
     def play_erase(self) -> bool:
         """Call this method when a player press '消除'."""
         if self.player.selected_cards is not None and len(self.player.selected_cards) != 1:
@@ -80,84 +119,11 @@ class PlayerUtility:
         self.player.remove_cards([card_tbp])
         self.for_erase = False
         return True
-    
-class PlayerUtilityRemote:
-    def __init__(self, player: Player, table: TableClassic) -> None:
-        self.table = table
-        self.player = player
-        self.for_erase = False
-    def playHand(self, hand: Optional[Hand]):
-        if not self.for_erase:
-            if hand is None:
-                self.table.turn_forward(played_hand=False)
-                return
-
-            self.table.play_hand(hand)
-            for i in range(len(hand.card)):
-                self.player.cards.pop()
-            if not hand.eraseable:
-                self.table.turn_forward(played_hand=True)
-            else:
-                self.for_erase = True
-            return True
-        else:
-            self.table.turn_forward(played_hand=True)
-            self.for_erase = False
-            if hand is None:
-                return
-            card = hand.card[0]
-            self.table.erase(card)
-            self.player.remove_cards([card])
-            self.player.cards.pop()
-            
-
-class PlayerUtilityServer:
-    def __init__(self, player: Player, table: TableClassic) -> None:
-        self.table = table
-        self.player = player
-        self.for_erase = False
-
-    def play_hand(self, hand: Hand) -> bool:
-        cards = hand.card
-
-        if self.for_erase:
-            return False
-
-        if any(card not in self.player.cards for card in cards):
-            return False
-        
-        self.player.remove_cards(cards)
-
-        if not hand.eraseable:
-            self.table.turn_forward(played_hand=True)
-        else:
-            self.for_erase = True
-        return True
-    
-    def play_erase(self, card:int) -> bool:
-        """Call this method when a player press '消除'."""
-        if self.table.turn == 1 and 1 not in self.table.cards:
-            if card != 1:
-                return False
-        if not self.for_erase:
-            return False
-        self.table.erase(card)
-        self.table.turn_forward(played_hand=True)
-        self.player.remove_cards([card])
-        self.for_erase = False
-        return True
-        
-    def pass_turn(self) -> bool:
-        """Call this method when a player press 'pass'"""
-        if self.player.lastplayed:
-            return False
-        self.table.turn_forward(played_hand=False)
-        return True
 
 class GameCoreServer: 
     def __init__(self) -> None:
         self.table = TableClassic()
-        self.players: list[PlayerUtilityServer] = []
+        self.players: list[PlayerUtility] = []
         self.names:set[str] = set()
         self.winner = None
         
@@ -207,7 +173,7 @@ class GameCoreServer:
                 
         if accept:
             self.allow_start.append(True)
-            self.players.append(PlayerUtilityServer(player, self.table))
+            self.players.append(PlayerUtility(player, self.table))
             return len(self.table.players) - 1
         return -1
     
@@ -218,7 +184,7 @@ class GameCoreServer:
         del self.players[player_index]
 
     @staticmethod
-    def _yourTurn(player:PlayerUtilityServer):
+    def _yourTurn(player:PlayerUtility):
         return player.player.his_turn
 
     def playHand(self, player_index:int, hand: Hand) -> bool:
@@ -227,11 +193,9 @@ class GameCoreServer:
             return False
         
         if current_player.for_erase:
-            if len(hand.card) != 1:
-                return False
-            return current_player.play_erase(hand.card[0])
+            return current_player.play_erase2(hand)
         else:
-            return current_player.play_hand(hand)
+            return current_player.play_hand2(hand)
     
     def passTurn(self, player_index:int):
         current_player = self.players[player_index]
@@ -249,14 +213,12 @@ class GameCoreClient:
 
     def setup(self, table: TableClassic, index: int):
         self.table = table
-        self.players: list[PlayerUtility|PlayerUtilityRemote] = []
+        self.players: list[PlayerUtility] = []
         
-        for i, player in enumerate(self.table.players):
-            if i == index:
-                self.current_player = PlayerUtility(player, self.table)
-                self.players.append(self.current_player)
-            else:
-                self.players.append(PlayerUtilityRemote(player, self.table))
+        for player in self.table.players:
+            self.players.append(PlayerUtility(player, self.table))
+        
+        self.current_player = self.players[index]
 
     def selectCards(self, cards: list[int]):
         current_player = self.current_player
@@ -279,6 +241,23 @@ class GameCoreClient:
         if not valid:
             raise NotImplementedError
         
+    def othersPlayHand(self, player_id: int, hand: Optional[Hand]) -> bool:
+        current_player = self.players[player_id]
+
+        if hand is None:
+            return current_player.pass_turn()
+
+        if len(current_player.player.cards) < len(hand.card):
+            return False
+
+        current_player.player.cards[:len(hand.card)] = hand.card
+
+        if not current_player.for_erase:
+            success = current_player.play_hand2(hand)
+        else:
+            success = current_player.play_erase2(hand)
+
+        return success
 
     def playHand(self, index: int):
         current_player = self.current_player

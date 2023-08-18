@@ -6,7 +6,7 @@ from utilities import *
 import threading
 import struct
 from logger import ConnectionLogger
-from game import GameCoreServer, PlayerUtilityServer
+from game import GameCoreServer
 from copy import deepcopy
 from typing import Optional
 

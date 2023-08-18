@@ -18,7 +18,7 @@ import os
 import struct
 from logger import ConnectionLogger
 import winsound
-from game import PlayerUtility, GameCoreClient, PlayerUtilityRemote
+from game import GameCoreClient
 
 """
 The frame of this application
@@ -208,8 +208,13 @@ class MainWindow(QMainWindow):
 
     @Slot(Hand, int)
     def othersPlayerHand(self, hand:Hand, id: int):
-        player = self.core.players[id]
-        player.playHand(hand)
+        success = self.core.othersPlayHand(id, hand)
+
+        # TODO: success check
+        if not success:
+            print('not success')
+            pass
+
         for card in hand.card:
             self.scene.playCard(card)
 
