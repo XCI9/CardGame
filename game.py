@@ -57,7 +57,7 @@ class PlayerUtility:
         return True
 
 class RemotePlayerUtility:
-    """An panle for remote players (every other playes)."""
+    """A panle for remote players. it provides no checking"""
     def __init__(self, player: Player, table: TableClassic) -> None:
         self.player = player
         self.table = table
@@ -89,6 +89,7 @@ class RemotePlayerUtility:
         return True
 
 class LocalPlayerUtility(PlayerUtility):
+    """"A panle for remote players. It provides checking and real time hands info."""
     def __init__(self, player: Player, table: TableClassic) -> None:
         super().__init__(player, table)
         self.avalhands:list[Hand] = []
