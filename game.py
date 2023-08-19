@@ -1,3 +1,4 @@
+from typing import Optional
 from utilities import TableClassic, Player, Hand, evaluate_cards
 
 
@@ -23,20 +24,20 @@ class PlayerUtilityInterface:
         raise NotImplementedError(
             'pure virtual function not overwritten.'
         )
-    def play_hand(self, hand: Hand) -> bool :
+    def play_hand(self, hand: Hand) -> bool:
         raise NotImplementedError(
             'pure virtual function not overwritten.'
         )
-    def play_erase(self, card: int) -> bool:
+    def play_erase(self, card: Optional[int]) -> bool:
         raise NotImplementedError(
             'pure virtual function not overwritten.'
         )
 
 class PlayerUtility(PlayerUtilityInterface):
-    """A panel for player in serve, used as record, monitoring and sync.
+    """A panel for player in server, used as record, monitoring and sync.
     
     This class is used in server side to record and monitoring players.
-    It checks the validity of each action, it's a stander set of utilities
+    It checks the validity of each action, it's a standard set of utilities
     for game to go on.
     """
     def __init__(self, player: Player, table: TableClassic) -> None:
@@ -45,7 +46,7 @@ class PlayerUtility(PlayerUtilityInterface):
     def pass_turn(self) -> bool:
         """A player pass his turn.
         
-        It will check wheter a player is allowed to pass his turn.
+        It will check whether a player is allowed to pass his turn.
         """
         if self.player.lastplayed:
             return False
@@ -56,7 +57,7 @@ class PlayerUtility(PlayerUtilityInterface):
         """A player plays a hand onto table.
         
         It checks whether the timing is right, 
-        checks wheter a player has those cards,
+        checks whether a player has those cards,
         and checks if the hand is playable.
         """
         cards_tbp = hand.card
@@ -73,7 +74,7 @@ class PlayerUtility(PlayerUtilityInterface):
         else:
             self.for_erase = True
         return True
-    def play_erase(self, card: int) -> bool:
+    def play_erase(self, card: Optional[int]) -> bool:
         """A player erase a card.
         
         For turn 1, it checks whether it is allowed to erase a card.
@@ -92,7 +93,7 @@ class PlayerUtility(PlayerUtilityInterface):
         return True
 
 class RemotePlayerUtility(PlayerUtilityInterface):
-    """A panle for remote players. it provides no checking.
+    """A panel for remote players. it provides no checking.
     
     This class is used as utility for a player in his side to see other players.
     It provides no checking at all, implement minima necessary action to update 
@@ -110,7 +111,7 @@ class RemotePlayerUtility(PlayerUtilityInterface):
         if not hand.eraseable:
             self.table.turn_forward(played_hand=True)
         return True
-    def play_erase(self, card: int):
+    def play_erase(self, card: Optional[int]) -> bool:
         """A remote player play a erase card.
         
         Erase a card onto table, with no checking.
@@ -133,7 +134,7 @@ class LocalPlayerUtility(PlayerUtility, PlayerUtilityInterface):
     
     This class is used as a player utility himself at his side.
     It uses stander set of utilitits that provides checking, and it provides 
-    additiona real time hands info (hand hint and playable hint).
+    additional real time hands info (hand hint and playable hint).
     """
     def __init__(self, player: Player, table: TableClassic) -> None:
         super().__init__(player, table)
@@ -160,7 +161,7 @@ class LocalPlayerUtility(PlayerUtility, PlayerUtilityInterface):
     def select_cards(self, cards: list[int]) -> bool:
         """Call this function when a player change selected cards.
         
-        It checks wheter a player have the selected cards in hand,
+        It checks whether a player have the selected cards in hand,
         then update hands info.
         """
         if any(card not in self.player.cards for card in cards):
