@@ -16,7 +16,7 @@ class CardNumber(QGraphicsTextItem):
         self.number = number
         self.setPlainText(f'{number}')
 
-PADDING = 5
+PADDING = 75
 
 class Card(QGraphicsItemGroup):
     def __init__(self, x, y, number, parent=None):
@@ -90,7 +90,7 @@ class Card(QGraphicsItemGroup):
         self.is_mouse_press = False
 
         if self.is_selected:
-            self.setY(self.original_y-50)
+            self.setY(self.original_y-40)
         else:
             self.setY(self.original_y-20)
 
@@ -100,7 +100,7 @@ class Card(QGraphicsItemGroup):
         return super().mousePressEvent(event)
 
 class PublicCardPlacer:
-    def __init__(self, slot_count=31):
+    def __init__(self, slot_count=42):
         self.slot_count = slot_count
         self.block_size = 10
         self.gap = int(2.5 * self.block_size)
@@ -111,24 +111,33 @@ class PublicCardPlacer:
 
     def makeCard(self, number):
         group = QGraphicsItemGroup()
-        card = QGraphicsRectItem(0, 0, self.block_size*2, self.block_size*20, group)
+        card = QGraphicsRectItem(0, 0, self.block_size*1.8, self.block_size*10, group)
         number = CardNumber(number, group)
 
         group.addToGroup(card)
         group.addToGroup(number)
-        group.setY(60)
 
         return group
 
     def putCard(self, canva:QGraphicsScene, number:int):
         x = self.getSlotX(self.current_card_count)
+        y = self.getSlotY(self.current_card_count)
         card = self.makeCard(number)  
         self.slots[self.current_card_count] = card  
         card.setX(x)
+        card.setY(y)
         canva.addItem(card)
         self.current_card_count += 1
+
+    def getSlotY(self, index):
+        if index >= 21:
+            return 200
+        else:
+            return 75
                 
     def getSlotX(self, index):
+        if index >= 21:
+            index -= 21
         return PADDING + index * self.gap
 
 class PrivateCardPlacer:
@@ -212,7 +221,7 @@ class Canva(QGraphicsScene):
         
     def initCard(self, numbers:list):
         for i, n in enumerate(numbers):
-            card = Card(PADDING + i* self.gap, 350, n)#Card(PADDING + i* self.gap , 441, n)
+            card = Card(PADDING + i* self.gap, 390, n)#Card(PADDING + i* self.gap , 441, n)
             card.setSlotManager(self.slot)
             self.addItem(card)
             self.slot.setCard(i, card)

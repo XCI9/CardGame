@@ -150,7 +150,7 @@ class MainWindow(QMainWindow):
         self.gameover_dialog.play_again.connect(lambda: self.core.playAgain())
  
         self.run = True
-        if result != QDialog.nameAccepted:
+        if result != QDialog.DialogCode.Accepted:
             self.run = False
 
         self.name = self.dialog.ui.name.text()
@@ -162,7 +162,7 @@ class MainWindow(QMainWindow):
                                                     (self.ui.rule19, '3壓2'),
                                                     (self.ui.rule29, '3壓1')]
 
-        self.ui.cannot_play_msg.hide()
+        self.ui.cannot_play_msg.hide()       
 
     @Slot(str, str, int, int)
     def makeConnection(self, type:str, ip:str, port: int, player_count: int):
@@ -219,6 +219,9 @@ class MainWindow(QMainWindow):
         self.scene.initCard(player.cards)
 
         self.updateGameStatus()
+
+        #for i in range(1, 43):
+        #    self.scene.playCard(i)
 
     def updateGameStatus(self):
         player_utility = self.core.current_player
