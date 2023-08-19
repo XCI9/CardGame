@@ -31,8 +31,11 @@ class CardTypeBlock(QWidget):
                 card_number_str += f'{number} '
             card_number_str = card_number_str[:-1] # remove last space
 
+            self.ui.card.setText(card_number_str)
             if self.is_erased:
-                self.ui.card.setText('消除牌')
+                self.ui.type.setText('消除')
+                self.ui.value.setText('')
+                self.ui.eliminate.setText('')
                 return
 
             match hand.rank:
@@ -49,7 +52,6 @@ class CardTypeBlock(QWidget):
                 case 'rare single' | 'single':
                     card_type_name = f'單支{hand.value}'
             
-            self.ui.card.setText(card_number_str)
             self.ui.type.setText(card_type_name)
 
             if hand.suit != -1:

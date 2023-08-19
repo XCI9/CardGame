@@ -264,8 +264,9 @@ class MainWindow(QMainWindow):
         if self.prev_hand is not None:
             self.ui.prev_hand.removeWidget(self.prev_hand)
             self.prev_hand.deleteLater()
-        self.prev_hand = CardTypeBlock(True, self.core.table.previous_hand)
-        self.ui.prev_hand.addWidget(self.prev_hand)
+        if self.core.table.previous_hand.rank != 'None':
+            self.prev_hand = CardTypeBlock(True, self.core.table.previous_hand)
+            self.ui.prev_hand.addWidget(self.prev_hand)
 
         #update card count
         display_str = '剩餘牌數: '
