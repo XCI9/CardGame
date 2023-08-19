@@ -5,6 +5,20 @@ from utilities import TableClassic
 
 
 class PlayerUtilityInterface:
+    """An interface for player utilities at each side.
+    
+    For server side to record and monitoring players: 
+        PlayerUtility
+        --- Provides checking for each action.
+    For player himself at his side : 
+        LocalPlayerUtility
+        --- Inherit `PlayerUtility`, it provides additional real time
+            hands info (hand hint and playable hint).
+    For player at his side to see other players: 
+        RemotePlayerUtility
+        --- Provides no checking, implement minima necessary action to 
+            update the game.
+    """
     def __init__(self, player: Player, table: TableClassic):
         self.player = player
         self.table = table
@@ -16,9 +30,15 @@ class PlayerUtilityInterface:
         raise NotImplementedError
 
 class PlayerUtility(PlayerUtilityInterface):
-    """A panel for player in serve, used as checking and sync."""
+    """A panel for player in serve, used as record, monitoring and sync.
+    
+    This class is used in server side to record and monitoring players.
+    It checks the validity of each action, it's a stander set of utilities
+    for game to go on.
+    """
     def __init__(self, player: Player, table: TableClassic) -> None:
         super().__init__(player, table)
+        self.for_erase = False
     def pass_turn(self) -> bool:
         """A player pass his turn.
         
@@ -30,7 +50,7 @@ class PlayerUtility(PlayerUtilityInterface):
             self.table.turn_forward(played_hand=False)
             return True
     def play_hand(self, hand: Hand) -> bool:
-        """A player plays a hand on to table.
+        """A player plays a hand onto table.
         
         It checks whether the timing is right, 
         checks wheter a player has those cards,
@@ -60,14 +80,21 @@ class PlayerUtility(PlayerUtilityInterface):
         if self.table.turn == 1 and 1 not in self.table.cards:
             if card != 1:
                 return False
-        self.table.erase(card)
+
+        if card not in (-1, None):
+            self.player.remove_cards([card])
+            self.table.erase(card)
         self.table.turn_forward(played_hand=True)
-        self.player.remove_cards([card])
         self.for_erase = False
         return True
 
 class RemotePlayerUtility(PlayerUtilityInterface):
-    """A panle for remote players. it provides no checking"""
+    """A panle for remote players. it provides no checking.
+    
+    This class is used as utility for a player in his side to see other players.
+    It provides no checking at all, implement minima necessary action to update 
+    the game.
+    """
     def __init__(self, player: Player, table: TableClassic) -> None:
         super().__init__(player, table)
     def play_hand(self, hand: Hand) -> bool:
@@ -85,8 +112,9 @@ class RemotePlayerUtility(PlayerUtilityInterface):
         
         Erase a card onto table, with no checking.
         """
-        self.player.remove_cards([-1])
-        self.table.erase(card)
+        if card not in (-1, None):
+            self.player.remove_cards([-1])
+            self.table.erase(card)
         self.table.turn_forward(played_hand=True)
         return True
     def pass_turn(self) -> bool:
@@ -98,7 +126,12 @@ class RemotePlayerUtility(PlayerUtilityInterface):
         return True
 
 class LocalPlayerUtility(PlayerUtility, PlayerUtilityInterface):
-    """"A panle for local players. It provides checking and real time hands info."""
+    """"A panle for local players. It provides checking and real time hands info.
+    
+    This class is used as a player utility himself at his side.
+    It uses stander set of utilitits that provides checking, and it provides 
+    additiona real time hands info (hand hint and playable hint).
+    """
     def __init__(self, player: Player, table: TableClassic) -> None:
         super().__init__(player, table)
         self.avalhands:list[Hand] = []
