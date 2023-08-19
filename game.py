@@ -79,11 +79,8 @@ class PlayerUtility(PlayerUtilityInterface):
         
         For turn 1, it checks whether it is allowed to erase a card.
         """
-        if not self.for_erase:
+        if not self.table.is_erasable_card(card)[0]:
             return False
-        if self.table.turn == 1 and 1 not in self.table.cards:
-            if card != 1:
-                return False
 
         if card not in (-1, None):
             self.player.remove_cards([card])
@@ -150,14 +147,28 @@ class LocalPlayerUtility(PlayerUtility, PlayerUtilityInterface):
         """
         self.avalhands = []
         self.avalhands_info = []
-        avalhands = evaluate_cards(self.player.selected_cards)
-        self.avalhands = avalhands
-        for avalhand in avalhands:
-            playable, info = self.table.is_playable_hand(avalhand)
-            if playable:
+        if not self.for_erase:
+            avalhands = evaluate_cards(self.player.selected_cards)
+            self.avalhands = avalhands
+            for avalhand in avalhands:
+                playable, info = self.table.is_playable_hand(avalhand)
+                if playable:
+                    self.avalhands_info.append('playable')
+                else:
+                    self.avalhands_info.append(info)
+        else:
+            if len(self.player.selected_cards) != 1:
+                return
+            card_tbe = self.player.selected_cards[0]
+            avalhands = [Hand((card_tbe,), rank='erase')]
+            is_erasable_card, info = self.table.is_erasable_card(card_tbe)
+            if is_erasable_card:
                 self.avalhands_info.append('playable')
             else:
                 self.avalhands_info.append(info)
+
+
+
     def select_cards(self, cards: list[int]) -> bool:
         """Call this function when a player change selected cards.
         
@@ -167,6 +178,4 @@ class LocalPlayerUtility(PlayerUtility, PlayerUtilityInterface):
         if any(card not in self.player.cards for card in cards):
             return False
         self.player.selected_cards = cards
-        if not self.for_erase:
-            self.update_handsinfo()
-        return True
+        self.update_handsinfo()
