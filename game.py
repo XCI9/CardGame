@@ -4,11 +4,21 @@ from functools import singledispatchmethod
 from utilities import TableClassic
 
 
-class PlayerUtility:
-    """A panel for player in serve, used as checking and sync."""
-    def __init__(self, player: Player, table: TableClassic) -> None:
+class PlayerUtilityInterface:
+    def __init__(self, player: Player, table: TableClassic):
         self.player = player
         self.table = table
+    def pass_turn(self):
+        raise NotImplementedError
+    def play_hand(self, hand: Hand) -> bool :
+        raise NotImplementedError
+    def play_erase(self, card: int) -> bool:
+        raise NotImplementedError
+
+class PlayerUtility(PlayerUtilityInterface):
+    """A panel for player in serve, used as checking and sync."""
+    def __init__(self, player: Player, table: TableClassic) -> None:
+        super().__init__(player, table)
     def pass_turn(self) -> bool:
         """A player pass his turn.
         
@@ -56,11 +66,10 @@ class PlayerUtility:
         self.for_erase = False
         return True
 
-class RemotePlayerUtility:
+class RemotePlayerUtility(PlayerUtilityInterface):
     """A panle for remote players. it provides no checking"""
     def __init__(self, player: Player, table: TableClassic) -> None:
-        self.player = player
-        self.table = table
+        super().__init__(player, table)
     def play_hand(self, hand: Hand) -> bool:
         """A remote player play a hand.
         
@@ -88,7 +97,7 @@ class RemotePlayerUtility:
         self.table.turn_forward(played_hand=False)
         return True
 
-class LocalPlayerUtility(PlayerUtility):
+class LocalPlayerUtility(PlayerUtility, PlayerUtilityInterface):
     """"A panle for local players. It provides checking and real time hands info."""
     def __init__(self, player: Player, table: TableClassic) -> None:
         super().__init__(player, table)
