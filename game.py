@@ -23,11 +23,17 @@ class PlayerUtilityInterface:
         self.player = player
         self.table = table
     def pass_turn(self):
-        raise NotImplementedError
+        raise NotImplementedError(
+            'pure virtual function not overwritten.'
+        )
     def play_hand(self, hand: Hand) -> bool :
-        raise NotImplementedError
+        raise NotImplementedError(
+            'pure virtual function not overwritten.'
+        )
     def play_erase(self, card: int) -> bool:
-        raise NotImplementedError
+        raise NotImplementedError(
+            'pure virtual function not overwritten.'
+        )
 
 class PlayerUtility(PlayerUtilityInterface):
     """A panel for player in serve, used as record, monitoring and sync.
