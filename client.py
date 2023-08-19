@@ -1,92 +1,78 @@
-import socket
-from utilities import *
+from utilities import TableClassic, Hand
 import pickle
 from package import Package
-from PySide6.QtCore import Qt, Signal, QThread
+from PySide6.QtCore import Qt, Signal, QObject
+from PySide6.QtNetwork import QTcpSocket, QAbstractSocket
 from logger import ConnectionLogger
 import struct
 from typing import Optional
 from game import LocalPlayerUtility, RemotePlayerUtility, PlayerUtilityInterface
 
-class ClientHandler(QThread):
+class ClientHandler(QObject):
     gameover = Signal(str)
     update_players = Signal(list, int)
     connection_lose = Signal()
     sync_game = Signal(TableClassic, int)
     others_play_hand = Signal(Hand, int)
     others_erase_hand = Signal(int, int)
+    connection_error = Signal(str)
 
-    def __init__(self, socket: socket.socket, logger: ConnectionLogger):
+    def __init__(self):
         super().__init__()
-        self.socket = socket
-        self.logger = logger
+        self.socket = QTcpSocket()
+        self.socket.readyRead.connect(self.on_ready_read)
+        self.socket.disconnected.connect(self.on_disconnected)
+        self.socket.connected.connect(self.on_connected)
+        self.socket.errorOccurred.connect(self.on_error)
 
-    def run(self):
-        while self.socket.fileno() != -1:
-            header = self.socket.recv(4)  # Read the 4-byte header
-            if not header:
-                break
-            length = struct.unpack("!I", header)[0]  # Unpack the message length from network byte order
-            data = self.socket.recv(length)
-            if not data:
-                break
-            package = pickle.loads(data)
-            self.logger.log('recv', self.socket, str(package))
+        self.logger = ConnectionLogger('client')
 
-            match package:
-                case Package.GameOver():  self.gameover.emit(package.winner)
-                case Package.GetPlayer(): self.update_players.emit(package.players, package.full_count)
-                case Package.SyncGame():  self.sync_game.emit(package.table, package.id)
-                case Package.PlayCard():  self.others_play_hand.emit(package.hand, package.id)
-                case Package.PlayErase(): self.others_erase_hand.emit(package.card, package.id)
-                case _:                    raise NotImplementedError
+    def connect_to_server(self, ip: str, port:int, name: str):
+        self.socket.connectToHost(ip, port)
+        self.name = name
+        
+    def disconnect_from_server(self):
+        self.socket.disconnectFromHost()
+
+    def on_connected(self):
+        self.logger.log('connect', self.socket, '')
+        self.sendPackage(Package.SendName(self.name))
+
+    def on_ready_read(self):
+        header = self.socket.read(4).data()  # Read the 4-byte header
+        length = struct.unpack("!I", header)[0]  # Unpack the message length from network byte order
+        data = self.socket.read(length).data()
+        package = pickle.loads(data)
+        self.logger.log('recv', self.socket, str(package))
+
+        match package:
+            case Package.GameOver():  self.gameover.emit(package.winner)
+            case Package.GetPlayer(): self.update_players.emit(package.players, package.full_count)
+            case Package.SyncGame():  self.sync_game.emit(package.table, package.id)
+            case Package.PlayCard():  self.others_play_hand.emit(package.hand, package.id)
+            case Package.PlayErase(): self.others_erase_hand.emit(package.card, package.id)
+            case _:                    raise NotImplementedError
+        
+    def on_disconnected(self):
         self.logger.log('disconnect', self.socket, '')
-        self.socket.shutdown(socket.SHUT_RDWR)
-        self.socket.close()
         self.connection_lose.emit()
 
-
-class GameCoreClient:
-    def __init__(self):
-        self.initSocket()
-        self.logger = ConnectionLogger('client')
-        self.network_handler = ClientHandler(self.socket, self.logger)
-
-    def initSocket(self):
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-
-    def resetSocket(self):
-        self.initSocket()
-        self.network_handler.socket = self.socket
-
-    def connect(self, ip: str, port: int, name: str):
-        self.socket.connect((ip, port))
-        self.logger.log('connect', self.socket, '')
-
-        self.network_handler.start()
-
-        self.sendPackage(Package.SendName(name))
-
-    def disconnnect(self):
-        if self.socket.fileno() != -1:
-            try:
-                self.socket.shutdown(socket.SHUT_RDWR)
-            except:
-                pass
-        if self.network_handler is not None:
-            self.network_handler.wait()
-
+    def on_error(self, socketError):
+        if socketError == QAbstractSocket.SocketError.ConnectionRefusedError:
+            self.connection_error.emit('連線請求被伺服器拒絕')
+        else:
+            self.connection_error.emit(f'連線錯誤:{socketError}')
 
     def sendPackage(self, package:Package.Package):
         package_byte = pickle.dumps(package)
         message_length = len(package_byte)
         header = struct.pack("!I", message_length)  # "!I" indicates network byte order for an unsigned int
-        self.socket.sendall(header + package_byte)
+        self.socket.write(header + package_byte)
         self.logger.log('send', self.socket, str(package))
 
-    def getCurrentPlayer(self) -> Player:
-        return self.current_player.player
+class GameCoreClient:
+    def __init__(self):
+        self.network_handler = ClientHandler()
 
     def setup(self, table: TableClassic, index: int):
         self.table = table
@@ -121,11 +107,11 @@ class GameCoreClient:
         if self.current_player.for_erase:
             valid = current_player.play_erase(None)
             if valid:
-                self.sendPackage(Package.PlayErase(-1, None))
+                self.network_handler.sendPackage(Package.PlayErase(-1, None))
         else:
             valid = current_player.pass_turn()
             if valid:
-                self.sendPackage(Package.PlayCard(-1, None)) 
+                self.network_handler.sendPackage(Package.PlayCard(-1, None)) 
 
         if not valid:
             raise NotImplementedError
@@ -156,13 +142,16 @@ class GameCoreClient:
         # put played card onto table
         if current_player.for_erase:
             valid = current_player.play_erase(hand.card[0])
-            self.sendPackage(Package.PlayErase(-1, hand.card[0]))
+            self.network_handler.sendPackage(Package.PlayErase(-1, hand.card[0]))
         else:
             valid = current_player.play_hand(hand)
-            self.sendPackage(Package.PlayCard(-1, hand))
+            self.network_handler.sendPackage(Package.PlayCard(-1, hand))
 
         if not valid:
             raise NotImplementedError
 
     def getRule(self) -> tuple[bool, bool, bool]:
         return self.table.rule9, self.table.rule19, self.table.rule29
+    
+    def playAgain(self):
+        self.network_handler.sendPackage(Package.AgainChk(True))

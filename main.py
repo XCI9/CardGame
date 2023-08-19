@@ -6,10 +6,9 @@ from mainwindow_ui import Ui_MainWindow
 from LauncherDialog_ui import Ui_Dialog as Ui_ServerClientDialog
 from PlayAgainDialog_ui import Ui_Dialog as Ui_PlayAgainDialog
 from canva import Canva
-from utilities import *
+from utilities import TableClassic, Hand
 from hand import HandSelector, CardTypeBlock
 from server import startServer
-from package import Package
 import os
 import winsound
 from client import GameCoreClient
@@ -131,6 +130,7 @@ class MainWindow(QMainWindow):
         self.core.network_handler.connection_lose.connect(self.connectionLose)
         self.core.network_handler.others_play_hand.connect(self.othersPlayerHand)
         self.core.network_handler.others_erase_hand.connect(self.othersEraseHand)
+        self.core.network_handler.connection_error.connect(self.connect_failed)
 
         self.scene = Canva()
         self.ui.canva.setScene(self.scene)
@@ -147,10 +147,10 @@ class MainWindow(QMainWindow):
         result = self.dialog.exec()
 
         self.gameover_dialog = PlayAgainDialog()
-        self.gameover_dialog.play_again.connect(lambda: self.core.sendPackage(Package.AgainChk(True)))
+        self.gameover_dialog.play_again.connect(lambda: self.core.playAgain())
  
         self.run = True
-        if result != QDialog.Accepted:
+        if result != QDialog.nameAccepted:
             self.run = False
 
         self.name = self.dialog.ui.name.text()
@@ -164,8 +164,6 @@ class MainWindow(QMainWindow):
 
         self.ui.cannot_play_msg.hide()
 
-
-
     @Slot(str, str, int, int)
     def makeConnection(self, type:str, ip:str, port: int, player_count: int):
         if type == 'server':
@@ -175,11 +173,9 @@ class MainWindow(QMainWindow):
                 print(e)
                 self.connect_failed.emit('無法啟動伺服器!')
                 return
-        try:
-            self.core.connect(ip, port, self.dialog.ui.name.text())
-        except ConnectionRefusedError:
-            self.connect_failed.emit('無法與伺服器建立連線!')
-            return
+            
+        self.core.network_handler.connect_to_server(ip, port, 
+                                                    self.dialog.ui.name.text())
 
     @Slot(Hand, int)
     def othersPlayerHand(self, hand:Hand, id: int):
@@ -286,7 +282,7 @@ class MainWindow(QMainWindow):
             self.close()
             return
         
-        self.core.resetSocket()
+        #self.core.resetSocket()
 
     @Slot(str)
     def gameover(self, winner: str):
@@ -338,7 +334,7 @@ class MainWindow(QMainWindow):
         self.updateGameStatus()
 
     def terminate(self):
-        self.core.disconnnect()
+        self.core.network_handler.disconnect_from_server()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

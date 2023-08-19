@@ -100,9 +100,8 @@ class CardListModel(QAbstractListModel):
 
         return None
 
-class HandSelector(QObject):
+class HandSelector:
     def __init__(self, ui: Ui_MainWindow, core: GameCoreClient):
-        super().__init__()
         self.ui = ui
         self.listView = ui.card_selector
         self.core = core
@@ -120,27 +119,16 @@ class HandSelector(QObject):
         # Create and set the delegate for the QListView
         card_delegate = CardTypeDelegate(self.listView)
         self.listView.setItemDelegate(card_delegate)
-
-        self.is_choosing_eliminate = False
-
-        self.can_eliminate_index = -1
-
-        self.choose_cards:list[int] = []
-        self.possible_types:list[Hand] = []
-    
     
     @Slot(QModelIndex)
     def handle_item_selection(self, index: QModelIndex):
         selected_item_data: CardTypeBlock = index.data(Qt.ItemDataRole.DisplayRole)
         if not selected_item_data.playable:
             return
-        if self.is_choosing_eliminate:
-            return
 
         selection_model = self.listView.selectionModel()
         self.selected_index = selection_model.currentIndex().row()
         #print("Selected index:", self.selected_index)
-       
 
     @Slot(list)
     def changeChooseCards(self, cards:list[int]):
@@ -151,7 +139,7 @@ class HandSelector(QObject):
         self.cardtypes = []
         playable_indexes: list[int] = []
         for i, (hand, not_playable_reason) in enumerate(zip(player_utility.avalhands, player_utility.avalhands_info)):
-            cardtype = CardTypeBlock(True, hand, self.core.current_player.for_erase)
+            cardtype = CardTypeBlock(True, hand, player_utility.for_erase)
             if not_playable_reason == 'playable':
                 playable_indexes.append(i)
             else:
@@ -175,4 +163,3 @@ class HandSelector(QObject):
 
     def clearChoose(self):
         self.listView.setModel(CardListModel([]))
-        self.choose_cards = []
