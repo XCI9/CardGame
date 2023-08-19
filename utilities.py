@@ -41,6 +41,12 @@ class Hand():
     suit: int = -1
     eraseable: bool = False
 
+    def is_none(self) -> bool:
+        if self.rank == 'None':
+            return True
+        else:
+            return False
+
     def __gt__(self, other: "Hand") -> bool:
         if ind_higher_ranking(self, other) == 1:
             return True
@@ -88,6 +94,7 @@ hand_ranking_table = (
     'double',
     'rare single',
     'single',
+    'erase',
     'None'
 )
 hand_ranking = {}
@@ -411,7 +418,15 @@ class TableClassic(Table):
         else:
             if newhand > self.previous_hand: return True, ''
         return False, "無法壓過場上的牌"
-    
+
+    def is_erasable_card(self, card:int) -> tuple[bool, str]:
+        if not self.for_erase:
+            return False, '非消除回合'
+        if self.table.turn == 1 and 1 not in self.table.cards:
+            if card != 1:
+                return False, '首家需要打出1'
+        return True, ''
+
     def get_player(self, shift: int = 0) -> Player:
         """Get the player object.
         
