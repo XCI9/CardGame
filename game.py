@@ -2,6 +2,12 @@ from utilities import *
 from typing import Callable, Optional
 from functools import singledispatchmethod
 from utilities import TableClassic
+import socket
+from package import Package
+from logger import ConnectionLogger
+import pickle
+import struct
+from client import ClientHandler
 
 
 class PlayerUtilityInterface:
@@ -241,15 +247,19 @@ class GameCoreServer:
     def _yourTurn(player:PlayerUtility):
         return player.player.his_turn
 
-    def playHand(self, player_index:int, hand: Hand) -> bool:
+    def playHand(self, player_index: int, hand: Hand) -> bool:
         current_player = self.players[player_index]
         if not self._yourTurn(current_player):
             return False
         
-        if current_player.for_erase:
-            return current_player.play_erase2(hand)
-        else:
-            return current_player.play_hand2(hand)
+        return current_player.play_hand(hand)
+        
+    def playErase(self, player_index: int, card: int) -> bool:
+        current_player = self.players[player_index]
+        if not self._yourTurn(current_player):
+            return False
+        
+        return current_player.play_erase(card)
     
     def passTurn(self, player_index:int):
         current_player = self.players[player_index]
@@ -262,17 +272,57 @@ class GameCoreServer:
         return all(self.allow_start)
 
 class GameCoreClient:
+    def __init__(self):
+        self.initSocket()
+        self.logger = ConnectionLogger('client')
+        self.network_handler = ClientHandler(self.socket, self.logger)
+
+    def initSocket(self):
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
+    def resetSocket(self):
+        self.initSocket()
+        self.network_handler.socket = self.socket
+
+    def connect(self, ip: str, port: int, name: str):
+        self.socket.connect((ip, port))
+        self.logger.log('connect', self.socket, '')
+
+        self.network_handler.start()
+
+        self.sendPackage(Package.SendName(name))
+
+    def disconnnect(self):
+        if self.socket.fileno() != -1:
+            try:
+                self.socket.shutdown(socket.SHUT_RDWR)
+            except:
+                pass
+        if self.network_handler is not None:
+            self.network_handler.wait()
+
+
+    def sendPackage(self, package:Package.Package):
+        package_byte = pickle.dumps(package)
+        message_length = len(package_byte)
+        header = struct.pack("!I", message_length)  # "!I" indicates network byte order for an unsigned int
+        self.socket.sendall(header + package_byte)
+        self.logger.log('send', self.socket, str(package))
+
     def getCurrentPlayer(self) -> Player:
         return self.current_player.player
 
     def setup(self, table: TableClassic, index: int):
         self.table = table
-        self.players: list[PlayerUtility] = []
+        self.players: list[PlayerUtilityInterface] = []
         
-        for player in self.table.players:
-            self.players.append(PlayerUtility(player, self.table))
-        
-        self.current_player = self.players[index]
+        for i, player in enumerate(self.table.players):
+            if i != index:
+                self.players.append(RemotePlayerUtility(player, self.table))
+            else:
+                self.current_player = LocalPlayerUtility(player, self.table)
+                self.players.append(self.current_player)
 
     def selectCards(self, cards: list[int]):
         current_player = self.current_player
@@ -284,13 +334,23 @@ class GameCoreClient:
                 raise NotImplementedError
         else:
             if len(cards) == 1:
+                if self.table.turn == 1 and 1 not in self.table.cards:
+                    if cards[0] != 1:
+                        return
                 current_player.avalhands = [Hand((cards[0],))]
                 current_player.avalhands_info = ['playable']
 
     def passTurn(self):
         current_player = self.current_player
 
-        valid = current_player.pass_turn()
+        if self.current_player.for_erase:
+            valid = current_player.play_erase(None)
+            if valid:
+                self.sendPackage(Package.PlayErase(-1, None))
+        else:
+            valid = current_player.pass_turn()
+            if valid:
+                self.sendPackage(Package.PlayCard(-1, None)) 
 
         if not valid:
             raise NotImplementedError
@@ -304,29 +364,30 @@ class GameCoreClient:
         if len(current_player.player.cards) < len(hand.card):
             return False
 
-        current_player.player.cards[:len(hand.card)] = hand.card
+        success = current_player.play_hand(hand)
 
-        if not current_player.for_erase:
-            success = current_player.play_hand2(hand)
-        else:
-            success = current_player.play_erase2(hand)
+        return success
+    
+    def othersEraseHand(self, player_id: int, card: Optional[int]) -> bool:
+        current_player = self.players[player_id]
+
+        success = current_player.play_erase(card)
 
         return success
 
-    def playHand(self, index: int):
+    def playHand(self, hand: Hand):
         current_player = self.current_player
 
-        if not current_player.for_erase:
-            selectable = current_player.select_hand(index)
-
-            if not selectable:
-                raise NotImplementedError
-
-            current_player.play_hand()
+        # put played card onto table
+        if current_player.for_erase:
+            valid = current_player.play_erase(hand.card[0])
+            self.sendPackage(Package.PlayErase(-1, hand.card[0]))
         else:
-            current_player.play_erase()
+            valid = current_player.play_hand(hand)
+            self.sendPackage(Package.PlayCard(-1, hand))
+
+        if not valid:
+            raise NotImplementedError
 
     def getRule(self) -> tuple[bool, bool, bool]:
         return self.table.rule9, self.table.rule19, self.table.rule29
-    
-

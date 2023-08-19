@@ -102,8 +102,6 @@ class CardListModel(QAbstractListModel):
         return None
 
 class HandSelector(QObject):
-    sendPackage = Signal(Package.Package)
-
     def __init__(self, ui: Ui_MainWindow, core: GameCoreClient):
         super().__init__()
         self.ui = ui

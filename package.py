@@ -13,6 +13,7 @@ class Package:
 
     @dataclass(init=True)
     class PlayErase(Package):
+        id: int
         card: int
 
     @dataclass(init=True)

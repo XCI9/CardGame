@@ -126,10 +126,17 @@ class MainWindow(QMainWindow):
 
         self.sound_path = os.environ['WINDIR'] + "\Media\Windows Battery Critical.wav"
 
-        self.core = GameCoreClient()
+        self.dialog = LauncherDialog()
+        self.connect_failed.connect(self.dialog.reinputInfo)
+        self.dialog.make_connection.connect(self.makeConnection)
 
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+        self.core = GameCoreClient()
+        self.core.network_handler.gameover.connect(self.gameover)
+        self.core.network_handler.update_players.connect(self.dialog.updatePlayers)
+        self.core.network_handler.sync_game.connect(self.syncGame)
+        self.core.network_handler.connection_lose.connect(self.connectionLose)
+        self.core.network_handler.others_play_hand.connect(self.othersPlayerHand)
+        self.core.network_handler.others_erase_hand.connect(self.othersEraseHand)
 
         self.scene = Canva()
         self.ui.canva.setScene(self.scene)
@@ -138,23 +145,15 @@ class MainWindow(QMainWindow):
         self.ui.canva.horizontalScrollBar().blockSignals(True)
         self.ui.canva.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
 
-        self.logger = ConnectionLogger('client')
-
         self.hand_selector = HandSelector(self.ui, self.core)
-        self.hand_selector.sendPackage.connect(self.sendPackage)
         self.scene.chooseCardsChanged.connect(self.hand_selector.changeChooseCards)
         self.ui.submit.clicked.connect(self.playCard)
         self.ui.pass_.clicked.connect(self.pass_)
 
-        self.network_handler = None
-
-        self.dialog = LauncherDialog()
-        self.connect_failed.connect(self.dialog.reinputInfo)
-        self.dialog.make_connection.connect(self.makeConnection)
         result = self.dialog.exec()
 
         self.gameover_dialog = PlayAgainDialog()
-        self.gameover_dialog.play_again.connect(lambda: self.sendPackage(Package.AgainChk(True)))
+        self.gameover_dialog.play_again.connect(lambda: self.core.sendPackage(Package.AgainChk(True)))
  
         self.run = True
         if result != QDialog.Accepted:
@@ -171,13 +170,7 @@ class MainWindow(QMainWindow):
 
         self.ui.cannot_play_msg.hide()
 
-    @Slot(Package.Package)
-    def sendPackage(self, package:Package.Package):
-        package_byte = pickle.dumps(package)
-        message_length = len(package_byte)
-        header = struct.pack("!I", message_length)  # "!I" indicates network byte order for an unsigned int
-        self.socket.sendall(header + package_byte)
-        self.logger.log('send', self.socket, str(package))
+
 
     @Slot(str, str, int, int)
     def makeConnection(self, type:str, ip:str, port: int, player_count: int):
@@ -189,22 +182,10 @@ class MainWindow(QMainWindow):
                 self.connect_failed.emit('無法啟動伺服器!')
                 return
         try:
-            self.socket.connect((ip, port))
+            self.core.connect(ip, port, self.dialog.ui.name.text())
         except ConnectionRefusedError:
             self.connect_failed.emit('無法與伺服器建立連線!')
             return
-        
-        self.logger.log('connect', self.socket, '')
-
-        self.network_handler = ClientHandler(self.socket, self.logger)
-        self.network_handler.gameover.connect(self.gameover)
-        self.network_handler.update_players.connect(self.dialog.updatePlayers)
-        self.network_handler.sync_game.connect(self.syncGame)
-        self.network_handler.connection_lose.connect(self.connectionLose)
-        self.network_handler.others_play_hand.connect(self.othersPlayerHand)
-        self.network_handler.start()
-
-        self.sendPackage(Package.SendName(self.dialog.ui.name.text()))
 
     @Slot(Hand, int)
     def othersPlayerHand(self, hand:Hand, id: int):
@@ -217,6 +198,19 @@ class MainWindow(QMainWindow):
 
         for card in hand.card:
             self.scene.playCard(card)
+
+        self.updateGameStatus()
+
+    @Slot(int, int)
+    def othersEraseHand(self, card: int, id: int):
+        success = self.core.othersEraseHand(id, card)
+
+        # TODO: success check
+        if not success:
+            print('not success')
+            pass
+
+        self.scene.playCard(card)
 
         self.updateGameStatus()
 
@@ -296,10 +290,8 @@ class MainWindow(QMainWindow):
                 self.gameover_dialog.close()
             self.close()
             return
-
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.socket.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-        self.hand_selector.socket = self.socket
+        
+        self.core.resetSocket()
 
     @Slot(str)
     def gameover(self, winner: str):
@@ -322,7 +314,6 @@ class MainWindow(QMainWindow):
     def pass_(self):
         self.ui.cannot_play_msg.hide()
 
-        self.sendPackage(Package.PlayCard(-1, None))
         self.core.passTurn()
 
         self.ui.submit.setEnabled(False)
@@ -341,9 +332,7 @@ class MainWindow(QMainWindow):
 
         self.ui.cannot_play_msg.hide()
 
-        # put played card onto table
-        self.sendPackage(Package.PlayCard(-1, hand))
-        self.core.playHand(selected_index)
+        self.core.playHand(hand)
 
         for card in hand.card:
             self.scene.playCard(card)
@@ -353,15 +342,8 @@ class MainWindow(QMainWindow):
 
         self.updateGameStatus()
 
-
     def terminate(self):
-        if self.socket.fileno() != -1:
-            try:
-                self.socket.shutdown(socket.SHUT_RDWR)
-            except:
-                pass
-        if self.network_handler is not None:
-            self.network_handler.wait()
+        self.core.disconnnect()
 
 if __name__ == '__main__':
     app = QApplication(sys.argv)

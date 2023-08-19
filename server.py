@@ -177,7 +177,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
         for i in range(len(self.clients)):
             self.core.allow_start[i] = False
 
-    def playHand(self, player_id: int, hand:Hand):
+    def playHand(self, player_id: int, hand: Hand):
         if hand is None:
             success = self.core.passTurn(player_id)
         else:
@@ -189,6 +189,16 @@ class ServerHandler(socketserver.BaseRequestHandler):
 
         # update table for all player
         self.broadcastPackageExcept(Package.PlayCard(player_id, hand), player_id)
+
+    def playErase(self, player_id: int, card: int):
+        success = self.core.playErase(player_id, card)
+            
+        if not success:
+            self.syncGameTo(player_id)
+            return
+
+        # update table for all player
+        self.broadcastPackageExcept(Package.PlayErase(player_id, card), player_id)
 
     def updatePlayer(self):
         self.broadcastPackage(Package.GetPlayer(self.core.getPlayersName(), self.core.max_player_count))
@@ -259,6 +269,7 @@ class ServerHandler(socketserver.BaseRequestHandler):
                 case Package.PlayCard(): self.playHand(player_id, package.hand)
                 case Package.SendName(): self.initPlayerName(player_id, package.name)
                 case Package.AgainChk(): self.againCheck(player_id, package.agree)
+                case Package.PlayErase():self.playErase(player_id, package.card)
                 case _:                  raise NotImplementedError
 
 def startServer(host:str, port:int, player_count:int):

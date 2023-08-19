@@ -15,6 +15,7 @@ class ClientHandler(QThread):
     connection_lose = Signal()
     sync_game = Signal(TableClassic, int)
     others_play_hand = Signal(Hand, int)
+    others_erase_hand = Signal(int, int)
 
     def __init__(self, socket: socket.socket, logger: ConnectionLogger):
         super().__init__()
@@ -34,10 +35,11 @@ class ClientHandler(QThread):
             self.logger.log('recv', self.socket, str(package))
 
             match package:
-                case Package.GameOver():   self.gameover.emit(package.winner)
-                case Package.GetPlayer():  self.update_players.emit(package.players, package.full_count)
-                case Package.SyncGame():   self.sync_game.emit(package.table, package.id)
-                case Package.PlayCard():   self.others_play_hand.emit(package.hand, package.id)
+                case Package.GameOver():  self.gameover.emit(package.winner)
+                case Package.GetPlayer(): self.update_players.emit(package.players, package.full_count)
+                case Package.SyncGame():  self.sync_game.emit(package.table, package.id)
+                case Package.PlayCard():  self.others_play_hand.emit(package.hand, package.id)
+                case Package.PlayErase(): self.others_erase_hand.emit(package.card, package.id)
                 case _:                    raise NotImplementedError
         self.logger.log('disconnect', self.socket, '')
         self.socket.shutdown(socket.SHUT_RDWR)
