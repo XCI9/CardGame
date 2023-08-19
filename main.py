@@ -8,17 +8,11 @@ from PlayAgainDialog_ui import Ui_Dialog as Ui_PlayAgainDialog
 from canva import Canva
 from utilities import *
 from hand import HandSelector, CardTypeBlock
-from client import ClientHandler
 from server import startServer
 from package import Package
-from typing import Optional
-import socket
-import pickle
 import os
-import struct
-from logger import ConnectionLogger
 import winsound
-from game import GameCoreClient
+from client import GameCoreClient
 
 """
 The frame of this application

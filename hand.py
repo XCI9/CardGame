@@ -4,13 +4,10 @@ from PySide6.QtCore import Qt, Signal, QAbstractListModel, QModelIndex, QSize, S
 from PySide6.QtGui import QRegion
 from mainwindow_ui import Ui_MainWindow
 
-from package import Package
 from cardtype_ui import Ui_Form as CardTypeForm
-from canva import PrivateCardPlacer
 from utilities import *
-import socket
 from typing import Optional
-from game import GameCoreClient
+from client import GameCoreClient
 
 class CardTypeBlock(QWidget):
     def __init__(self, playable = True, hand: Optional[Hand] = None, is_erased = False, parent=None):

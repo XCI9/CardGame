@@ -6,113 +6,97 @@ from utilities import *
 import threading
 import struct
 from logger import ConnectionLogger
-from game import GameCoreServer
+from game import PlayerUtility
 from copy import deepcopy
 from typing import Optional
 
-class GameCore:
-    def __init__(self):
-        self.core = TableClassic()
+class GameCoreServer: 
+    def __init__(self) -> None:
+        self.table = TableClassic()
+        self.players: list[PlayerUtility] = []
+        self.names:set[str] = set()
         self.winner = None
-        self.names = set()
-        self.allow_start = []
-        self.player_count = 3
+        
+        self.max_player_count = 3
+        self.allow_start: list[bool] = []
 
     def start(self):
-        """Start the game"""
         self.winner = None
-        return self.core.start()
-    
+        return self.table.start()
+
+    def getPlayersName(self) -> list[str]:
+        """Return all exists players' name"""
+        names = []
+        for player in self.table.players:
+            names.append(player.name)
+
+        return names
+
     def getPlayerById(self, id:int) -> Player:
         """Return player object given id"""
-        return self.core.players[id]
-    
+        return self.table.players[id]
+
+    def getNextTurnPlayer(self) -> int:
+        """Return next player id, should be called after turn_forward """
+        for i, player in enumerate(self.table.players):
+            if player.his_turn:
+                return i
+        raise NotImplementedError
+
     def setName(self, player_id:int, name:str) -> bool:
         """Return if the name is set successfully"""
         if name in self.names:
             return False
         self.names.add(name)
 
-        self.core.players[player_id].name = name
+        self.table.players[player_id].name = name
         return True
 
     def isPlayerFull(self) -> bool:
         """Return if the game is full and so cannot join new player"""
-        return len(self.core.players) == self.player_count
+        return len(self.table.players) == self.max_player_count
 
-    def join(self):
+    def join(self) -> int:
         """Return player id if join success, -1 if failed"""
-        accept = self.core.join(Player())
+        player = Player()
+        accept = self.table.join(player)
 
         if accept:
             self.allow_start.append(True)
-            return len(self.core.players) - 1
+            self.players.append(PlayerUtility(player, self.table))
+            return len(self.table.players) - 1
         return -1
-    
-    def leave(self, player_id: int):
+
+    def leave(self, player_index: int):
         """Delete the player from the game"""
-        del self.core.players[player_id]
-        del self.allow_start[player_id]
+        del self.table.players[player_index]
+        del self.allow_start[player_index]
+        del self.players[player_index]
 
-    def playHand(self, player_id:int, hand: Hand):
-        """Player play a hand"""
-        id = player_id
-        if hand is None:
-            return
+    @staticmethod
+    def _yourTurn(player:PlayerUtility):
+        return player.player.his_turn
+
+    def playHand(self, player_index: int, hand: Hand) -> bool:
+        current_player = self.players[player_index]
+        if not self._yourTurn(current_player):
+            return False
         
-        self.core.play_hand(hand)
-        for card in hand.card:
-            self.core.players[id].cards.remove(card)
-
-        if hand.erased_card is not None:
-            self.core.erase(hand.erased_card)
-            self.core.players[id].cards.remove(hand.erased_card)
-
-        # first one to clear all cards is the winner
-        if self.winner is None and len(self.core.players[id].cards) == 0:
-            self.winner = id
-
-    def getCardCounts(self) -> list[int]:
-        """Return cards count of each player"""
-        cards_count:list[int] = []
-        for player in self.core.players:
-            cards_count.append((player.name, len(player.cards)))
-
-        return cards_count
+        return current_player.play_hand(hand)
+        
+    def playErase(self, player_index: int, card: int) -> bool:
+        current_player = self.players[player_index]
+        if not self._yourTurn(current_player):
+            return False
+        
+        return current_player.play_erase(card)
     
-    def getPlayersName(self) -> list[str]:
-        """Return all exists players' name"""
-        names = []
-        for player in self.core.players:
-            names.append(player.name)
-
-        return names
-
-    def evaluateHands(self, hands:list[Hand]):
-        """Given hands, evaluate each hand and return the results"""
-        results = []
-        for hand in hands:
-            valid, reason = self.core.is_playable_hand(hand)
-            results.append((hand, valid, reason))
-
-        return results
-     
-    def getNextTurnPlayer(self) -> int:
-        """Return next player id, should be called after turn_forward """
-        for i, player in enumerate(self.core.players):
-            if player.his_turn:
-                return i
-        raise NotImplementedError
-
-    def turn_forward(self, is_last_player_pass:bool):
-        """Return the winner id if the game end, else return None"""
-        self.core.turn_forward(is_last_player_pass)
-
-        if self.core.game_playing is False:
-            return self.winner
-        
-        return None
-
+    def passTurn(self, player_index:int):
+        current_player = self.players[player_index]
+        if not self._yourTurn(current_player):
+            return False
+        return current_player.pass_turn() 
+    
     def allPlayerReady(self):
         """Return if all players are ready to play the games"""
         return all(self.allow_start)
