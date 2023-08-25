@@ -425,8 +425,33 @@ class TableClassic(Table):
                 return False, '首家需要打出1'
         return True, ''
 
+    def get_player_index(self, shift: int = 0) -> int:
+        """Get the player index (index in table.players).
+        
+        Argument
+        ----------
+        shift : int, optional (default is 0)
+            +1 to return next active player's index.
+            0 to return active player's index.
+            -1 to return previous active player's index.
+        """
+        holder = self._token
+        num_player = len(self.players)
+        if shift == 0:
+            return holder
+        if shift == +1:
+            next_holder = (holder + 1) % num_player
+            if not self.players[next_holder].in_game:
+                next_holder = (next_holder + 1) % num_player
+            return next_holder
+        if shift == -1:
+            prev_holder = (num_player + holder - 1) % num_player
+            if not self.players[prev_holder].in_game:
+                prev_holder = (num_player + prev_holder - 1) % num_player
+            return prev_holder
+        raise NotImplementedError
     def get_player(self, shift: int = 0) -> Player:
-        """Get the player object.
+        """Get a player.
         
         Argument
         ----------
@@ -435,21 +460,8 @@ class TableClassic(Table):
             0 to return active player.
             -1 to return previous active player.
         """
-        holder = self._token
-        num_player = len(self.players)
-        if shift == 0:
-            return self.players[holder]
-        if shift == +1:
-            next_holder = (holder + 1) % num_player
-            if not self.players[next_holder].in_game:
-                next_holder = (next_holder + 1) % num_player
-            return self.players[next_holder]
-        if shift == -1:
-            prev_holder = (num_player + holder - 1) % num_player
-            if not self.players[prev_holder].in_game:
-                prev_holder = (num_player + prev_holder - 1) % num_player
-            return self.players[prev_holder]
-        raise NotImplementedError
+        index = self.get_player_index(shift=shift)
+        return self.players[index]
 
     def turn_forward(self, played_hand: bool) -> None:
         """Make turn forward. check whether active player wins.
