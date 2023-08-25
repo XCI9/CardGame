@@ -12,7 +12,7 @@ class PlayerUtilityInterface:
         LocalPlayerUtility
         --- Inherit `PlayerUtility`, it provides additional real time
             hands info (hand hint and playable hint).
-    For player at his side to see other players: 
+    For player at his side to see other players:
         RemotePlayerUtility
         --- Provides no checking, implement minima necessary action to 
             update the game.
