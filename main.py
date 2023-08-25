@@ -218,6 +218,42 @@ class MainWindow(QMainWindow):
             self.scene.playCard(card)
         self.scene.initCard(player.cards)
 
+        match len(table.players):
+            case 4:
+                self.ui.player3_name.show()
+                self.ui.player3_hand_count.show()
+                self.ui.player3_icon.show()
+                self.ui.player2_name.show()
+                self.ui.player2_hand_count.show()
+                self.ui.player2_icon.show()
+                self.ui.player1_name.show()
+                self.ui.player1_hand_count.show()
+                self.ui.player1_icon.show()
+            case 3:
+                self.ui.player3_name.show()
+                self.ui.player3_hand_count.show()
+                self.ui.player3_icon.show()
+                self.ui.player2_name.hide()
+                self.ui.player2_hand_count.hide()
+                self.ui.player2_icon.hide()
+                self.ui.player1_name.show()
+                self.ui.player1_hand_count.show()
+                self.ui.player1_icon.show()
+            case 2:
+                self.ui.player3_name.hide()
+                self.ui.player3_hand_count.hide()
+                self.ui.player3_icon.hide()
+                self.ui.player2_name.show()
+                self.ui.player2_hand_count.show()
+                self.ui.player2_icon.show()
+                self.ui.player1_name.hide()
+                self.ui.player1_hand_count.hide()
+                self.ui.player1_icon.hide()
+            case _:
+                raise NotImplementedError
+        
+        
+
         self.updateGameStatus()
 
         #for i in range(1, 43):
