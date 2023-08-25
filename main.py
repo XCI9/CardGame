@@ -110,6 +110,44 @@ class PlayAgainDialog(QDialog):
         self.ui.play_again.setText('等待其餘玩家')
         self.play_again.emit()
 
+class PlayerUi:
+    def __init__(self, name_label: QLabel, 
+                 icon_label: QLabel, 
+                 hand_count_label: QLabel):
+        self.name = name_label
+        self.icon = icon_label
+        self.hand_count = hand_count_label
+        self.normal_styleSheet = 'border: 1px solid black;'\
+                                 'border-radius: 10px;'\
+                                 'background-color: #ff0'
+        self.activate_styleSheet = 'border: 3px solid blue;'\
+                                   'border-radius: 10px;'\
+                                   'background-color: #ff0'
+
+    def show(self):
+        self.name.show()
+        self.icon.show()
+        self.hand_count.show()
+
+    def hide(self):
+        self.name.hide()
+        self.icon.hide()
+        self.hand_count.hide()
+
+    def activate(self):
+        self.icon.setStyleSheet(self.activate_styleSheet)
+
+    def deactivate(self):
+        self.icon.setStyleSheet(self.normal_styleSheet)
+
+    def setHandNumber(self, number: int):
+        self.hand_count.setText(f'{number}')
+
+    def setPlayerName(self, name: str):
+        self.name.setText(name)
+        self.icon.setText(name[0])
+
+
 class MainWindow(QMainWindow):
     connect_failed = Signal(str)
     def __init__(self, parent=None):
@@ -163,6 +201,13 @@ class MainWindow(QMainWindow):
                                                     (self.ui.rule29, '3壓1')]
 
         self.ui.cannot_play_msg.hide()       
+
+        player0 = PlayerUi(self.ui.player0_name, self.ui.player0_icon, self.ui.player0_hand_count)
+        player1 = PlayerUi(self.ui.player1_name, self.ui.player1_icon, self.ui.player1_hand_count)
+        player2 = PlayerUi(self.ui.player2_name, self.ui.player2_icon, self.ui.player2_hand_count)
+        player3 = PlayerUi(self.ui.player3_name, self.ui.player3_icon, self.ui.player3_hand_count)
+        self.player_ui: list[PlayerUi] = [player0, player1, player2, player3]
+        self.player_order = [0, 1, 2, 3]
 
     @Slot(str, str, int, int)
     def makeConnection(self, type:str, ip:str, port: int, player_count: int):
@@ -220,39 +265,31 @@ class MainWindow(QMainWindow):
 
         match len(table.players):
             case 4:
-                self.ui.player3_name.show()
-                self.ui.player3_hand_count.show()
-                self.ui.player3_icon.show()
-                self.ui.player2_name.show()
-                self.ui.player2_hand_count.show()
-                self.ui.player2_icon.show()
-                self.ui.player1_name.show()
-                self.ui.player1_hand_count.show()
-                self.ui.player1_icon.show()
+                self.player_ui[3].show()
+                self.player_ui[2].show()
+                self.player_ui[1].show()
+                self.player_order = [0, 1, 2, 3]
             case 3:
-                self.ui.player3_name.show()
-                self.ui.player3_hand_count.show()
-                self.ui.player3_icon.show()
-                self.ui.player2_name.hide()
-                self.ui.player2_hand_count.hide()
-                self.ui.player2_icon.hide()
-                self.ui.player1_name.show()
-                self.ui.player1_hand_count.show()
-                self.ui.player1_icon.show()
+                self.player_ui[3].show()
+                self.player_ui[2].hide()
+                self.player_ui[1].show()
+                self.player_order = [0, 1, 3]
             case 2:
-                self.ui.player3_name.hide()
-                self.ui.player3_hand_count.hide()
-                self.ui.player3_icon.hide()
-                self.ui.player2_name.show()
-                self.ui.player2_hand_count.show()
-                self.ui.player2_icon.show()
-                self.ui.player1_name.hide()
-                self.ui.player1_hand_count.hide()
-                self.ui.player1_icon.hide()
+                self.player_ui[3].hide()
+                self.player_ui[2].show()
+                self.player_ui[1].hide()
+                self.player_order = [0, 2]
             case _:
                 raise NotImplementedError
         
-        
+        # move current player to first
+        while self.player_order[0] != self.core.current_player_index:
+            self.player_order = self.player_order[1:] + [self.player_order[0]]
+            
+            
+        for i, position in enumerate(self.player_order):
+            name = self.core.table.players[i].name
+            self.player_ui[position].setPlayerName(name)
 
         self.updateGameStatus()
 
@@ -296,20 +333,30 @@ class MainWindow(QMainWindow):
         if self.core.table.previous_hand.rank != 'None':
             self.prev_hand = CardTypeBlock(True, self.core.table.previous_hand)
             self.ui.prev_hand.addWidget(self.prev_hand)
+            
+        for i, position in enumerate(self.player_order):
+            hand_num = len(self.core.table.players[i].cards)
+            self.player_ui[position].setHandNumber(hand_num)
 
-        #update card count
-        display_str = '剩餘牌數: '
-        for player in self.core.table.players:
-            name = player.name
-            count = len(player.cards)
-            if name != self.name:
-                display_str += f'{name}-{count} '
-        self.ui.card_count.setText(display_str)
+        last_player = self.core.table.get_player(-1)
+        self.player_ui[self.player_order[last_player]].deactivate()
+        
+        current_player = self.core.table.get_player(0)
+        self.player_ui[self.player_order[current_player]].activate()
 
-        #update current player
-        for player in self.core.table.players:
-            if player.his_turn:
-                self.ui.turn_player_name.setText(f'目前輪到: {player.name}')
+
+        #display_str = '剩餘牌數: '
+        #for player in self.core.table.players:
+        #    name = player.name
+        #    count = len(player.cards)
+        #    if name != self.name:
+        #        display_str += f'{name}-{count} '
+        #self.ui.card_count.setText(display_str)
+#
+        ##update current player
+        #for player in self.core.table.players:
+        #    if player.his_turn:
+        #        self.ui.turn_player_name.setText(f'目前輪到: {player.name}')
             
 
     def connectionLose(self):

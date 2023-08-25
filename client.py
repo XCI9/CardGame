@@ -85,6 +85,8 @@ class GameCoreClient:
                 self.current_player = LocalPlayerUtility(player, self.table)
                 self.players.append(self.current_player)
 
+        self.current_player_index = index
+
     def selectCards(self, cards: list[int]):
         current_player = self.current_player
 
