@@ -16,7 +16,7 @@ class CardNumber(QGraphicsTextItem):
         self.number = number
         self.setPlainText(f'{number}')
 
-PADDING = 75
+PADDING = 150
 
 class Card(QGraphicsItemGroup):
     def __init__(self, x, y, number, parent=None):
