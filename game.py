@@ -79,10 +79,12 @@ class PlayerUtility(PlayerUtilityInterface):
         
         For turn 1, it checks whether it is allowed to erase a card.
         """
+        if not self.for_erase:
+            return False
         if not self.table.is_erasable_card(card)[0]:
             return False
 
-        if card not in (-1, None):
+        if card is not None and card != -1:
             self.player.remove_cards([card])
             self.table.erase(card)
         self.table.turn_forward(played_hand=True)
@@ -167,8 +169,6 @@ class LocalPlayerUtility(PlayerUtility, PlayerUtilityInterface):
             else:
                 self.avalhands_info.append(info)
 
-
-
     def select_cards(self, cards: list[int]) -> bool:
         """Call this function when a player change selected cards.
         
@@ -179,3 +179,4 @@ class LocalPlayerUtility(PlayerUtility, PlayerUtilityInterface):
             return False
         self.player.selected_cards = cards
         self.update_handsinfo()
+        return True
