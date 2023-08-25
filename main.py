@@ -12,6 +12,7 @@ from server import startServer
 import os
 import winsound
 from client import GameCoreClient
+from typing import Optional
 
 """
 The frame of this application
@@ -223,16 +224,17 @@ class MainWindow(QMainWindow):
                                                     self.dialog.ui.name.text())
 
     @Slot(Hand, int)
-    def othersPlayerHand(self, hand:Hand, id: int):
+    def othersPlayerHand(self, hand:Optional[Hand], id: int):
         success = self.core.othersPlayHand(id, hand)
 
         # TODO: success check
         if not success:
             print('not success')
             pass
-
-        for card in hand.card:
-            self.scene.playCard(card)
+        
+        if hand is not None:
+            for card in hand.card:
+                self.scene.playCard(card)
 
         self.updateGameStatus()
 
@@ -307,14 +309,10 @@ class MainWindow(QMainWindow):
         if player.his_turn:
             winsound.PlaySound(self.sound_path, winsound.SND_ALIAS)
             self.ui.submit.setEnabled(True)
-            self.ui.turn_player_name.setText(f'目前輪到: 你')
             if player_utility.for_erase:
                 self.ui.submit.setText('消除')
-            if player.lastplayed:
+            if not player.lastplayed:
                 self.ui.pass_.setEnabled(True)
-
-        else:
-            self.ui.turn_player_name.setText(f'目前輪到:{self.core.table.get_player().name}')
            
         #self.hand_selector.refreshPlayableCard()
 
@@ -331,6 +329,7 @@ class MainWindow(QMainWindow):
         if self.prev_hand is not None:
             self.ui.prev_hand.removeWidget(self.prev_hand)
             self.prev_hand.deleteLater()
+            self.prev_hand = None
         if self.core.table.previous_hand.rank != 'None':
             self.prev_hand = CardTypeBlock(True, self.core.table.previous_hand)
             self.ui.prev_hand.addWidget(self.prev_hand)
@@ -381,6 +380,8 @@ class MainWindow(QMainWindow):
 
         self.ui.submit.setEnabled(False)
         self.ui.pass_.setEnabled(False)
+
+        self.updateGameStatus()
 
     @Slot()
     def playCard(self):
