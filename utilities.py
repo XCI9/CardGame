@@ -35,7 +35,7 @@ __all__ = [
 @dataclass(init=True)
 class Hand():
     """A hand object that stores cards, rank, value and suit of a hand."""
-    card: tuple
+    card: tuple | list
     rank: str = 'None'
     value: int = -1
     suit: int = -1
@@ -420,9 +420,7 @@ class TableClassic(Table):
         return False, "無法壓過場上的牌"
 
     def is_erasable_card(self, card:int) -> tuple[bool, str]:
-        if not self.for_erase:
-            return False, '非消除回合'
-        if self.table.turn == 1 and 1 not in self.table.cards:
+        if self.turn == 1 and 1 not in self.cards:
             if card != 1:
                 return False, '首家需要打出1'
         return True, ''
