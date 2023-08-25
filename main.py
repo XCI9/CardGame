@@ -283,8 +283,9 @@ class MainWindow(QMainWindow):
                 raise NotImplementedError
         
         # move current player to first
-        while self.player_order[0] != self.core.current_player_index:
-            self.player_order = self.player_order[1:] + [self.player_order[0]]
+        index = self.core.current_player_index
+        move_diff = len(self.player_order)-index
+        self.player_order = self.player_order[move_diff:] + self.player_order[:move_diff]
             
             
         for i, position in enumerate(self.player_order):
@@ -338,26 +339,11 @@ class MainWindow(QMainWindow):
             hand_num = len(self.core.table.players[i].cards)
             self.player_ui[position].setHandNumber(hand_num)
 
-        last_player = self.core.table.get_player(-1)
+        last_player = self.core.table.get_player_index(-1)
         self.player_ui[self.player_order[last_player]].deactivate()
         
-        current_player = self.core.table.get_player(0)
-        self.player_ui[self.player_order[current_player]].activate()
-
-
-        #display_str = '剩餘牌數: '
-        #for player in self.core.table.players:
-        #    name = player.name
-        #    count = len(player.cards)
-        #    if name != self.name:
-        #        display_str += f'{name}-{count} '
-        #self.ui.card_count.setText(display_str)
-#
-        ##update current player
-        #for player in self.core.table.players:
-        #    if player.his_turn:
-        #        self.ui.turn_player_name.setText(f'目前輪到: {player.name}')
-            
+        current_player = self.core.table.get_player_index(0)
+        self.player_ui[self.player_order[current_player]].activate()        
 
     def connectionLose(self):
         if self.dialog.isVisible():

@@ -199,54 +199,6 @@
      <layout class="QHBoxLayout" name="prev_hand"/>
     </widget>
    </widget>
-   <widget class="QLabel" name="turn_player_name">
-    <property name="geometry">
-     <rect>
-      <x>610</x>
-      <y>460</y>
-      <width>191</width>
-      <height>21</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>12</pointsize>
-     </font>
-    </property>
-    <property name="styleSheet">
-     <string notr="true"/>
-    </property>
-    <property name="text">
-     <string>目前輪到: Player A</string>
-    </property>
-    <property name="alignment">
-     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-    </property>
-   </widget>
-   <widget class="QLabel" name="card_count">
-    <property name="geometry">
-     <rect>
-      <x>200</x>
-      <y>460</y>
-      <width>401</width>
-      <height>21</height>
-     </rect>
-    </property>
-    <property name="font">
-     <font>
-      <pointsize>12</pointsize>
-     </font>
-    </property>
-    <property name="styleSheet">
-     <string notr="true"/>
-    </property>
-    <property name="text">
-     <string>剩餘牌數: PlayerA-10, PlayerB-10</string>
-    </property>
-    <property name="alignment">
-     <set>Qt::AlignCenter</set>
-    </property>
-   </widget>
    <widget class="QLabel" name="player1_icon">
     <property name="geometry">
      <rect>
@@ -262,7 +214,7 @@
      </font>
     </property>
     <property name="styleSheet">
-     <string notr="true">border: 3px solid blue; border-radius: 10px;background-color: #ff0</string>
+     <string notr="true">border: 1px solid black; border-radius: 10px;background-color: #ff0</string>
     </property>
     <property name="text">
      <string>陳</string>
